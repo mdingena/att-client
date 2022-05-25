@@ -1,0 +1,50 @@
+{
+  "name": "att-client",
+  "version": "0.1.0",
+  "description": "",
+  "main": "dist/index.js",
+  "homepage": "https://github.com/mdingena/att-client#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mdingena/att-client.git"
+  },
+  "keywords": [
+    "township tale",
+    "bot library"
+  ],
+  "author": "Marc Dingena",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mdingena/att-client/issues"
+  },
+  "scripts": {
+    "test": "",
+    "compile": "tsc --noEmit",
+    "prebuild": "rimraf dist",
+    "build": "tsc",
+    "prepublish": "npm run test",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "jwt-decode": "^3.1.2",
+    "ws": "^8.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.35",
+    "@types/ws": "^8.5.3",
+    "@typescript-eslint/eslint-plugin": "^5.25.0",
+    "@typescript-eslint/parser": "^5.25.0",
+    "eslint": "^8.15.0",
+    "eslint-config-prettier": "^8.5.0",
+    "husky": "^4.3.8",
+    "lint-staged": "^12.4.1",
+    "prettier": "^2.6.2",
+    "rimraf": "^3.0.2",
+    "ts-jest": "^28.0.2",
+    "ts-node": "^10.7.0",
+    "typescript": "^4.6.4"
+  },
+  "engines": {
+    "node": ">=18.2.0"
+  }
+}
