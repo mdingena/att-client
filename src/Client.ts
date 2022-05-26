@@ -138,7 +138,7 @@ export class Client extends EventEmitter {
           })
         ]);
       } catch (error) {
-        this.logger.error('Error!', error);
+        this.logger.error(error);
       }
     });
   }

@@ -19,6 +19,7 @@ export class Subscriptions extends EventEmitter {
   events: EventEmitter;
   logger: Logger;
   messageId: number;
+  subscriptions: string[];
   ws?: WebSocket;
 
   constructor(clientId: string, logger: Logger = new Logger(Verbosity.Warning)) {
@@ -28,6 +29,7 @@ export class Subscriptions extends EventEmitter {
     this.events = new EventEmitter();
     this.logger = logger;
     this.messageId = 1;
+    this.subscriptions = [];
   }
 
   async init(accessToken: string) {
@@ -198,19 +200,31 @@ export class Subscriptions extends EventEmitter {
     });
   }
 
+  /**
+   * Subscribes to a WebSocket event and registers a callback for it.
+   */
   subscribe<T extends Subscription>(event: T, key: string, callback: (message: Message<T>) => unknown) {
     const subscription = `${event}/${key}`;
 
+    if (this.subscriptions.includes(subscription)) throw new Error(`Already subscribed to ${subscription}.`);
+
     this.logger.debug(`Subscribing to ${subscription}.`);
+    this.subscriptions = [...this.subscriptions, subscription];
     this.events.on(subscription, callback);
 
     return this.send<typeof event>('POST', `subscription/${subscription}`);
   }
 
+  /**
+   * Unsubscribes to a WebSocket event and removes a callback for it.
+   */
   unsubscribe<T extends Subscription>(event: T, key: string, callback: (message: Message<T>) => unknown) {
     const subscription = `${event}/${key}`;
 
+    if (!this.subscriptions.includes(subscription)) throw new Error(`Subscription to ${subscription} does not exist.`);
+
     this.logger.debug(`Unsubscribing to ${subscription}.`);
+    this.subscriptions = this.subscriptions.filter(existing => existing !== subscription);
     this.events.off(subscription, callback);
 
     return this.send<T>('DELETE', `subscription/${subscription}`);
