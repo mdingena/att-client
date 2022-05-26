@@ -4,7 +4,7 @@ import jwtDecode from 'jwt-decode';
 import { Api, DecodedToken } from './Api';
 import { Logger, Verbosity } from './Logger';
 import { TOKEN_URL } from './constants';
-import { Message, SubscriptionEvent, Subscriptions } from './Subscriptions';
+import { Subscription, Subscriptions } from './Subscriptions';
 
 const DEFAULTS: Required<
   Pick<Config, 'console' | 'excludedServers' | 'includedServers' | 'logVerbosity' | 'supportedServers'>
@@ -108,31 +108,34 @@ export class Client extends EventEmitter {
     this.subscriptions.on('ready', async (subscriptions: Subscriptions) => {
       this.logger.info('Subscribing to events.');
 
-      function subCallback(message: Message) {
-        console.log('Got a subscription message.', message);
+      if (typeof this.decodedToken === 'undefined') {
+        this.logger.error("Can't subscribe to events without a valid JWT. Please reload this client.");
+        throw new Error('Failed to subscribe to WebSocket events.');
       }
+
+      const userId = this.decodedToken?.client_sub;
 
       try {
         await Promise.all([
-          /* Subscribe to server group invites. */
-          subscriptions.subscribe(
-            subCallback,
-            SubscriptionEvent.InviteToGroupRequest,
-            this.decodedToken?.client_sub ?? ''
-          ),
+          /* Subscribe to and handle server group invitation requests. */
+          subscriptions.subscribe(Subscription.GroupInvitationRequested, userId, () => {
+            this.logger.info(`Subscribed to ${Subscription.GroupInvitationRequested} events.`);
+          }),
 
-          /* Subscribe to server group kicks. */
-          subscriptions.subscribe(
-            subCallback,
-            SubscriptionEvent.InviteToGroupRevoke,
-            this.decodedToken?.client_sub ?? ''
-          ),
+          /* Subscribe to and handle server group invitation revocations. */
+          subscriptions.subscribe(Subscription.GroupInvitationRevoked, userId, () => {
+            this.logger.info(`Subscribed to ${Subscription.GroupInvitationRequested} events.`);
+          }),
 
-          /* testing */
-          subscriptions.subscribe(subCallback, SubscriptionEvent.CreateGroup, this.decodedToken?.client_sub ?? ''),
-          subscriptions.subscribe(subCallback, SubscriptionEvent.DeleteGroup, this.decodedToken?.client_sub ?? ''),
-          subscriptions.subscribe(subCallback, SubscriptionEvent.JoinGroupRequest, this.decodedToken?.client_sub ?? ''),
-          subscriptions.subscribe(subCallback, SubscriptionEvent.JoinGroupRevoke, this.decodedToken?.client_sub ?? '')
+          /* Subscribe to and handle server group joined events. */
+          subscriptions.subscribe(Subscription.JoinedGroup, userId, () => {
+            this.logger.info(`Subscribed to ${Subscription.GroupInvitationRequested} events.`);
+          }),
+
+          /* Subscribe to and handle server group left events. */
+          subscriptions.subscribe(Subscription.LeftGroup, userId, () => {
+            this.logger.info(`Subscribed to ${Subscription.GroupInvitationRequested} events.`);
+          })
         ]);
       } catch (error) {
         this.logger.error('Error!', error);

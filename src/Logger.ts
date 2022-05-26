@@ -1,4 +1,4 @@
-export enum Verbosity {
+export const enum Verbosity {
   Error,
   Warning,
   Info,

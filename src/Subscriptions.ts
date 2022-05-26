@@ -1,40 +1,16 @@
+import type { HttpMethod } from './HttpMethod';
+import type { Message } from './Message';
 import { EventEmitter } from 'stream';
 import { WebSocket } from 'ws';
 import { Logger, Verbosity } from './Logger';
+import { HttpResponseCode } from './HttpResponseCode';
 import { WEBSOCKET_PING_INTERVAL, WEBSOCKET_URL, X_API_KEY } from './constants';
 
-type HttpMethod = 'CONNECT' | 'DELETE' | 'GET' | 'HEAD' | 'OPTIONS' | 'PATCH' | 'POST' | 'PUT' | 'TRACE';
-
-enum HttpResponseCode {
-  Ok = 200,
-  BadRequest = 400,
-  NotAuthorized = 401,
-  Forbidden = 403,
-  NotFound = 404,
-  MethodNotAllowed = 405,
-  NotAcceptable = 406,
-  InternalServerError = 500,
-  BadGateway = 502,
-  ServiceUnavailable = 503
-}
-
-export type Message = {
-  id: number;
-  event: string;
-  key: string;
-  responseCode: number;
-  content: string;
-};
-
-type Callback = (message: Message) => unknown;
-
-export enum SubscriptionEvent {
-  CreateGroup = 'me-group-create',
-  DeleteGroup = 'me-group-delete',
-  InviteToGroupRequest = 'me-group-invite-create',
-  InviteToGroupRevoke = 'me-group-invite-delete',
-  JoinGroupRequest = 'me-group-request-create',
-  JoinGroupRevoke = 'me-group-request-delete'
+export const enum Subscription {
+  GroupInvitationRequested = 'me-group-invite-create',
+  GroupInvitationRevoked = 'me-group-invite-delete',
+  JoinedGroup = 'me-group-create',
+  LeftGroup = 'me-group-delete'
 }
 
 export class Subscriptions extends EventEmitter {
@@ -130,15 +106,21 @@ export class Subscriptions extends EventEmitter {
     function handleMessage(this: WebSocket, data: Buffer, isBinary: boolean) {
       if (isBinary) {
         // This should never happen. There is no Alta documentation about binary data being sent through WebSockets.
+        that.logger.error('Puking horses! 🐴🐴🤮'); // https://thepetwiki.com/wiki/do_horses_vomit/
         return that.logger.debug('Received binary data on WebSocket.', data);
       }
 
-      const message = JSON.parse(data.toString()) as Message;
+      const message = JSON.parse(data.toString());
       that.logger.debug('Received WebSocket message.', message);
 
-      if (message.id >= 0) that.events.emit(`message-${message.id}`, message);
-
-      /* if (message.content.length > 0) */ that.events.emit(`${message.event}/${message.key}`);
+      if (message.id === 0) {
+        that.events.emit(`${message.event}/${message.key}`, {
+          ...message,
+          content: JSON.parse(message.content)
+        });
+      } else {
+        that.events.emit(`message-${message.id}`, message);
+      }
     }
 
     function handleOpen(this: WebSocket) {
@@ -177,8 +159,11 @@ export class Subscriptions extends EventEmitter {
     return this.messageId++;
   }
 
-  private send(method: HttpMethod, path: string, payload?: { [key: string]: unknown }) {
-    return new Promise((resolve: (message: Message) => void, reject: (error?: Error | Message) => void) => {
+  /**
+   * Sends a WebSocket request and returns a Promise of the response.
+   */
+  private send<T>(method: HttpMethod, path: string, payload?: { [key: string]: unknown }) {
+    return new Promise((resolve: (message: Message<T>) => void, reject: (error?: Error | Message<T>) => void) => {
       if (typeof this.accessToken === 'undefined' || typeof this.ws === 'undefined') {
         this.logger.error(
           'Subscriptions has invalid internals. Did you initialise Subscriptions with a valid access token and decoded token?'
@@ -192,7 +177,7 @@ export class Subscriptions extends EventEmitter {
       const id = this.getMessageId();
 
       this.logger.debug(`Registering one-time event handler for message-${id}.`);
-      this.events.once(`message-${id}`, function (message: Message) {
+      this.events.once(`message-${id}`, function (message: Message<T>) {
         if (message.responseCode === HttpResponseCode.Ok) {
           resolve(message);
         } else {
@@ -213,23 +198,21 @@ export class Subscriptions extends EventEmitter {
     });
   }
 
-  subscribe(callback: Callback, event: string, ...params: string[]) {
-    const path = params.length ? `/${params.join('/')}` : '';
-    const subscription = `${event}${path}`;
+  subscribe<T extends Subscription>(event: T, key: string, callback: (message: Message<T>) => unknown) {
+    const subscription = `${event}/${key}`;
 
-    this.logger.info(`Subscribing to ${subscription}.`);
+    this.logger.debug(`Subscribing to ${subscription}.`);
     this.events.on(subscription, callback);
 
-    return this.send('POST', `subscription/${subscription}`);
+    return this.send<typeof event>('POST', `subscription/${subscription}`);
   }
 
-  unsubscribe(callback: Callback, event: string, ...params: string[]) {
-    const path = params.length ? `/${params.join('/')}` : '';
-    const subscription = `${event}${path}`;
+  unsubscribe<T extends Subscription>(event: T, key: string, callback: (message: Message<T>) => unknown) {
+    const subscription = `${event}/${key}`;
 
     this.logger.debug(`Unsubscribing to ${subscription}.`);
     this.events.off(subscription, callback);
 
-    return this.send('DELETE', `subscription/${subscription}`);
+    return this.send<T>('DELETE', `subscription/${subscription}`);
   }
 }
