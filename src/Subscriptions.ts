@@ -13,7 +13,7 @@ export const enum Subscription {
   LeftGroup = 'me-group-delete'
 }
 
-export class Subscriptions extends EventEmitter {
+export class Subscriptions {
   accessToken?: string;
   clientId: string;
   events: EventEmitter;
@@ -23,8 +23,6 @@ export class Subscriptions extends EventEmitter {
   ws?: WebSocket;
 
   constructor(clientId: string, logger: Logger = new Logger(Verbosity.Warning)) {
-    super();
-
     this.clientId = clientId;
     this.events = new EventEmitter();
     this.logger = logger;
@@ -37,7 +35,7 @@ export class Subscriptions extends EventEmitter {
 
     this.ws = await this.createWebSocket(accessToken);
 
-    this.registerEventHandlers(this.ws);
+    await this.registerEventHandlers(this.ws);
   }
 
   /**
@@ -78,72 +76,74 @@ export class Subscriptions extends EventEmitter {
   /**
    * Takes a WebSocket instance and registers event handlers and timers to manage it.
    */
-  private registerEventHandlers(ws: WebSocket): void {
-    const that = this;
-    let interval: NodeJS.Timer;
+  private registerEventHandlers(ws: WebSocket): Promise<void> {
+    return new Promise(resolve => {
+      const that = this;
+      let interval: NodeJS.Timer;
 
-    function handleError(this: WebSocket, error: Error) {
-      that.logger.error('An error occurred on the WebSocket.', error);
-    }
-
-    function handlePing(this: WebSocket, data: Buffer) {
-      that.logger.debug('Received WebSocket ping.', data.toString());
-      this.pong(data);
-    }
-
-    function handlePong(this: WebSocket, data: Buffer) {
-      that.logger.debug('Received WebSocket pong.', data.toString());
-    }
-
-    function handleClose(this: WebSocket, code: number, reason: Buffer) {
-      that.logger.warn(`WebSocket is closing with code ${code}: ${reason.toString()}.`);
-
-      this.off('error', handleError);
-      this.off('ping', handlePing);
-      this.off('pong', handlePong);
-
-      clearInterval(interval);
-    }
-
-    function handleMessage(this: WebSocket, data: Buffer, isBinary: boolean) {
-      if (isBinary) {
-        // This should never happen. There is no Alta documentation about binary data being sent through WebSockets.
-        that.logger.error('Puking horses! 🐴🐴🤮'); // https://thepetwiki.com/wiki/do_horses_vomit/
-        return that.logger.debug('Received binary data on WebSocket.', data);
+      function handleError(this: WebSocket, error: Error) {
+        that.logger.error('An error occurred on the WebSocket.', error);
       }
 
-      const message = JSON.parse(data.toString());
-      that.logger.debug(`Received ${message.event} message.`);
-
-      if (message.id === 0) {
-        that.events.emit(`${message.event}/${message.key}`, {
-          ...message,
-          content: JSON.parse(message.content)
-        });
-      } else {
-        that.events.emit(`message-${message.id}`, message);
+      function handlePing(this: WebSocket, data: Buffer) {
+        that.logger.debug('Received WebSocket ping.', data.toString());
+        this.pong(data);
       }
-    }
 
-    function handleOpen(this: WebSocket) {
-      that.logger.debug('WebSocket opened.');
+      function handlePong(this: WebSocket, data: Buffer) {
+        that.logger.debug('Received WebSocket pong.', data.toString());
+      }
 
-      that.logger.debug('Registering WebSocket event handlers.');
-      this.on('error', handleError);
-      this.on('ping', handlePing);
-      this.on('pong', handlePong);
-      this.on('message', handleMessage);
+      function handleClose(this: WebSocket, code: number, reason: Buffer) {
+        that.logger.warn(`WebSocket is closing with code ${code}: ${reason.toString()}.`);
 
-      that.logger.debug('Registering WebSocket ping interval.');
-      interval = setInterval(() => {
-        that.ping(ws);
-      }, WEBSOCKET_PING_INTERVAL);
+        this.off('error', handleError);
+        this.off('ping', handlePing);
+        this.off('pong', handlePong);
 
-      that.emit('ready', that);
-    }
+        clearInterval(interval);
+      }
 
-    ws.once('close', handleClose);
-    ws.once('open', handleOpen);
+      function handleMessage(this: WebSocket, data: Buffer, isBinary: boolean) {
+        if (isBinary) {
+          // This should never happen. There is no Alta documentation about binary data being sent through WebSockets.
+          that.logger.error('Puking horses! 🐴🐴🤮'); // https://thepetwiki.com/wiki/do_horses_vomit/
+          return that.logger.debug('Received binary data on WebSocket.', data);
+        }
+
+        const message = JSON.parse(data.toString());
+        that.logger.debug(`Received ${message.event} message with ID ${message.id}.`);
+
+        if (message.id === 0) {
+          that.events.emit(`${message.event}/${message.key}`, {
+            ...message,
+            content: JSON.parse(message.content)
+          });
+        } else {
+          that.events.emit(`message-${message.id}`, message);
+        }
+      }
+
+      function handleOpen(this: WebSocket) {
+        that.logger.debug('WebSocket opened.');
+
+        that.logger.debug('Registering WebSocket event handlers.');
+        this.on('error', handleError);
+        this.on('ping', handlePing);
+        this.on('pong', handlePong);
+        this.on('message', handleMessage);
+
+        that.logger.debug('Registering WebSocket ping interval.');
+        interval = setInterval(() => {
+          that.ping(ws);
+        }, WEBSOCKET_PING_INTERVAL);
+
+        resolve();
+      }
+
+      ws.once('close', handleClose);
+      ws.once('open', handleOpen);
+    });
   }
 
   /**

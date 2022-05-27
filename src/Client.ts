@@ -107,58 +107,56 @@ export class Client extends EventEmitter {
     /* Initialise Subscriptions WebSocket. */
     await this.subscriptions.init(this.accessToken);
 
-    this.subscriptions.on('ready', async (subscriptions: Subscriptions) => {
-      try {
-        /* Subscribe to account messages. */
-        this.logger.debug('Subscribing to account messages.');
+    try {
+      /* Subscribe to account messages. */
+      this.logger.debug('Subscribing to account messages.');
 
-        await Promise.all([
-          /* Subscribe to and handle server group invitation message. */
-          subscriptions.subscribe(Subscription.GroupInvitationRequested, userId, message => {
-            this.logger.debug(`Received ${Subscription.GroupInvitationRequested} message.`, message);
-            this.api.acceptGroupInvite(message.content.id);
-          }),
+      await Promise.all([
+        /* Subscribe to and handle server group invitation message. */
+        this.subscriptions.subscribe(Subscription.GroupInvitationRequested, userId, message => {
+          this.logger.debug(`Received ${Subscription.GroupInvitationRequested} message.`, message);
+          this.api.acceptGroupInvite(message.content.id);
+        }),
 
-          /* Subscribe to and handle server group invite revocation message. */
-          subscriptions.subscribe(Subscription.GroupInvitationRevoked, userId, message => {
-            this.logger.debug(`Received ${Subscription.GroupInvitationRevoked} message.`, message);
-          }),
+        /* Subscribe to and handle server group invite revocation message. */
+        this.subscriptions.subscribe(Subscription.GroupInvitationRevoked, userId, message => {
+          this.logger.debug(`Received ${Subscription.GroupInvitationRevoked} message.`, message);
+        }),
 
-          /* Subscribe to and handle server group joined message. */
-          subscriptions.subscribe(Subscription.JoinedGroup, userId, message => {
-            this.logger.debug(`Received ${Subscription.JoinedGroup} message.`, message);
-          }),
+        /* Subscribe to and handle server group joined message. */
+        this.subscriptions.subscribe(Subscription.JoinedGroup, userId, message => {
+          this.logger.debug(`Received ${Subscription.JoinedGroup} message.`, message);
+        }),
 
-          /* Subscribe to and handle server group left message. */
-          subscriptions.subscribe(Subscription.LeftGroup, userId, message => {
-            this.logger.debug(`Received ${Subscription.LeftGroup} message.`, message);
+        /* Subscribe to and handle server group left message. */
+        this.subscriptions.subscribe(Subscription.LeftGroup, userId, message => {
+          this.logger.debug(`Received ${Subscription.LeftGroup} message.`, message);
+        })
+      ]);
+
+      /* Accept pending group invites. */
+      const invites = await this.api.getPendingGroupInvites();
+
+      console.log('Invites:', JSON.stringify(invites, null, 2));
+
+      if (invites.length > 0) {
+        this.logger.info(`Accepting ${invites.length} pending group invite${invites.length > 1 ? 's' : ''}.`);
+
+        await Promise.all(
+          invites.map(async invite => {
+            const stuff = await this.api.acceptGroupInvite(invite.id);
+            console.log(JSON.stringify(stuff, null, 2));
           })
-        ]);
-
-        /* Accept pending group invites. */
-        const invites = await this.api.getPendingGroupInvites();
-
-        console.log('Invites:', JSON.stringify(invites, null, 2));
-
-        if (invites.length > 0) {
-          this.logger.info(`Accepting ${invites.length} pending group invite${invites.length > 1 ? 's' : ''}.`);
-
-          await Promise.all(
-            invites.map(async invite => {
-              const stuff = await this.api.acceptGroupInvite(invite.id);
-              console.log(JSON.stringify(stuff, null, 2));
-            })
-          );
-        }
-
-        /* Subscribe to WebSocket messages for all joined groups. */
-        const joined = await this.api.getJoinedGroups();
-
-        console.log(JSON.stringify(joined, null, 2));
-      } catch (error) {
-        this.logger.error(error);
+        );
       }
-    });
+
+      /* Subscribe to WebSocket messages for all joined groups. */
+      const joined = await this.api.getJoinedGroups();
+
+      console.log(JSON.stringify(joined, null, 2));
+    } catch (error) {
+      this.logger.error(error);
+    }
   }
 
   /**
