@@ -99,44 +99,62 @@ export class Client extends EventEmitter {
     this.accessToken = await this.getAccessToken();
     this.decodedToken = this.decodeToken(this.accessToken);
 
-    /* Authorise API interface. */
-    this.api.auth(this.accessToken);
+    const userId = this.decodedToken.client_sub;
 
-    /* Initialise Subscriptions. */
+    /* Authorise API interface. */
+    this.api.auth(userId, this.accessToken);
+
+    /* Initialise Subscriptions WebSocket. */
     await this.subscriptions.init(this.accessToken);
 
     this.subscriptions.on('ready', async (subscriptions: Subscriptions) => {
-      this.logger.info('Subscribing to events.');
-
-      if (typeof this.decodedToken === 'undefined') {
-        this.logger.error("Can't subscribe to events without a valid JWT. Please reload this client.");
-        throw new Error('Failed to subscribe to WebSocket events.');
-      }
-
-      const userId = this.decodedToken?.client_sub;
-
       try {
+        /* Subscribe to account messages. */
+        this.logger.debug('Subscribing to account messages.');
+
         await Promise.all([
-          /* Subscribe to and handle server group invitation requests. */
-          subscriptions.subscribe(Subscription.GroupInvitationRequested, userId, () => {
-            this.logger.info(`Subscribed to ${Subscription.GroupInvitationRequested} events.`);
+          /* Subscribe to and handle server group invitation message. */
+          subscriptions.subscribe(Subscription.GroupInvitationRequested, userId, message => {
+            this.logger.debug(`Received ${Subscription.GroupInvitationRequested} message.`, message);
+            this.api.acceptGroupInvite(message.content.id);
           }),
 
-          /* Subscribe to and handle server group invitation revocations. */
-          subscriptions.subscribe(Subscription.GroupInvitationRevoked, userId, () => {
-            this.logger.info(`Subscribed to ${Subscription.GroupInvitationRequested} events.`);
+          /* Subscribe to and handle server group invite revocation message. */
+          subscriptions.subscribe(Subscription.GroupInvitationRevoked, userId, message => {
+            this.logger.debug(`Received ${Subscription.GroupInvitationRevoked} message.`, message);
           }),
 
-          /* Subscribe to and handle server group joined events. */
-          subscriptions.subscribe(Subscription.JoinedGroup, userId, () => {
-            this.logger.info(`Subscribed to ${Subscription.GroupInvitationRequested} events.`);
+          /* Subscribe to and handle server group joined message. */
+          subscriptions.subscribe(Subscription.JoinedGroup, userId, message => {
+            this.logger.debug(`Received ${Subscription.JoinedGroup} message.`, message);
           }),
 
-          /* Subscribe to and handle server group left events. */
-          subscriptions.subscribe(Subscription.LeftGroup, userId, () => {
-            this.logger.info(`Subscribed to ${Subscription.GroupInvitationRequested} events.`);
+          /* Subscribe to and handle server group left message. */
+          subscriptions.subscribe(Subscription.LeftGroup, userId, message => {
+            this.logger.debug(`Received ${Subscription.LeftGroup} message.`, message);
           })
         ]);
+
+        /* Accept pending group invites. */
+        const invites = await this.api.getPendingGroupInvites();
+
+        console.log('Invites:', JSON.stringify(invites, null, 2));
+
+        if (invites.length > 0) {
+          this.logger.info(`Accepting ${invites.length} pending group invite${invites.length > 1 ? 's' : ''}.`);
+
+          await Promise.all(
+            invites.map(async invite => {
+              const stuff = await this.api.acceptGroupInvite(invite.id);
+              console.log(JSON.stringify(stuff, null, 2));
+            })
+          );
+        }
+
+        /* Subscribe to WebSocket messages for all joined groups. */
+        const joined = await this.api.getJoinedGroups();
+
+        console.log(JSON.stringify(joined, null, 2));
       } catch (error) {
         this.logger.error(error);
       }

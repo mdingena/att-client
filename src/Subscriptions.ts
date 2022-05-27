@@ -44,7 +44,7 @@ export class Subscriptions extends EventEmitter {
    * Creates a new WebSocket instance.
    */
   private async createWebSocket(accessToken: string): Promise<WebSocket> {
-    this.logger.info('Creating new WebSocket.');
+    this.logger.debug('Creating new WebSocket.');
 
     const headers = {
       'Content-Type': 'application/json',
@@ -113,7 +113,7 @@ export class Subscriptions extends EventEmitter {
       }
 
       const message = JSON.parse(data.toString());
-      that.logger.debug('Received WebSocket message.', message);
+      that.logger.debug(`Received ${message.event} message.`);
 
       if (message.id === 0) {
         that.events.emit(`${message.event}/${message.key}`, {
@@ -150,7 +150,7 @@ export class Subscriptions extends EventEmitter {
    * Send a ping to whatever WS we currently have.
    */
   private ping(ws: WebSocket) {
-    this.logger.debug('Sending WebSocket ping.');
+    this.logger.debug('Pinging WebSocket.');
     ws.ping(this.clientId);
   }
 
@@ -195,13 +195,13 @@ export class Subscriptions extends EventEmitter {
         ...payload
       };
 
-      this.logger.debug('Sending WebSocket message.', message);
+      this.logger.debug('Sending message.', message);
       this.ws.send(JSON.stringify(message), error => typeof error !== 'undefined' && reject(error));
     });
   }
 
   /**
-   * Subscribes to a WebSocket event and registers a callback for it.
+   * Subscribes to an account message and registers a callback for it.
    */
   subscribe<T extends Subscription>(event: T, key: string, callback: (message: Message<T>) => unknown) {
     const subscription = `${event}/${key}`;
@@ -216,7 +216,7 @@ export class Subscriptions extends EventEmitter {
   }
 
   /**
-   * Unsubscribes to a WebSocket event and removes a callback for it.
+   * Unsubscribes to an account message and removes the callback for it.
    */
   unsubscribe<T extends Subscription>(event: T, key: string, callback: (message: Message<T>) => unknown) {
     const subscription = `${event}/${key}`;
