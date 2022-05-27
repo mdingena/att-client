@@ -1,10 +1,9 @@
-import type { HttpMethod } from './HttpMethod';
 import type { Message } from './Message';
 import { EventEmitter } from 'stream';
 import { WebSocket } from 'ws';
-import { Logger, Verbosity } from './Logger';
-import { HttpResponseCode } from './HttpResponseCode';
-import { WEBSOCKET_PING_INTERVAL, WEBSOCKET_URL, X_API_KEY } from './constants';
+import { Logger, Verbosity } from '../Logger';
+import { HttpMethod, HttpResponseCode } from '../Api';
+import { WEBSOCKET_PING_INTERVAL, WEBSOCKET_URL, X_API_KEY } from '../constants';
 
 export const enum Subscription {
   GroupInvitationRequested = 'me-group-invite-create',

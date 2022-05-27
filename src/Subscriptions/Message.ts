@@ -1,4 +1,4 @@
-import type { GroupInfo, GroupMemberInfo } from './Api/schemas';
+import type { GroupInfo, GroupMemberInfo } from '../Api/schemas';
 import type { Subscription } from './Subscriptions';
 
 type CommonMessage = {

@@ -1,6 +1,6 @@
 import type { ApiResponse } from './ApiResponse';
 import type { Scope } from '../Config';
-import type { HttpMethod } from '../HttpMethod';
+import type { HttpMethod } from './HttpMethod';
 import { Endpoint } from './Endpoint';
 import { REST_BASE_URL, X_API_KEY } from '../constants';
 import { Logger, Verbosity } from '../Logger';
