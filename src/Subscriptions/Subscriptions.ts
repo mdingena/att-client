@@ -217,14 +217,14 @@ export class Subscriptions {
   /**
    * Unsubscribes to an account message and removes the callback for it.
    */
-  unsubscribe<T extends Subscription>(event: T, key: string, callback: (message: Message<T>) => unknown) {
+  unsubscribe<T extends Subscription>(event: T, key: string) {
     const subscription = `${event}/${key}`;
 
     if (!this.subscriptions.includes(subscription)) throw new Error(`Subscription to ${subscription} does not exist.`);
 
     this.logger.debug(`Unsubscribing to ${subscription}.`);
     this.subscriptions = this.subscriptions.filter(existing => existing !== subscription);
-    this.events.off(subscription, callback);
+    this.events.removeAllListeners(subscription);
 
     return this.send<T>('DELETE', `subscription/${subscription}`);
   }
