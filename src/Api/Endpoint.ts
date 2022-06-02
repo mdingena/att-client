@@ -1,6 +1,9 @@
 export const enum Endpoint {
-  AcceptGroupInvite = '/groups/invites/{groupIdentifier}',
-  DeclineGroupInvite = '/groups/invites/{groupIdentifier}',
+  AcceptGroupInvite = '/groups/invites/{groupId}',
+  GroupInfo = '/groups/{groupId}',
   GroupInvites = '/groups/invites',
-  JoinedGroups = '/groups/joined'
+  GroupMember = '/groups/{groupId}/members/{userId}',
+  JoinedGroups = '/groups/joined',
+  ServerInfo = '/servers/{serverId}',
+  ServerConsole = '/servers/{serverId}/console'
 }

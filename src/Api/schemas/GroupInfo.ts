@@ -1,3 +1,6 @@
+import type { GroupServerInfo } from './GroupServerInfo';
+import type { GroupRoleInfo } from './GroupRoleInfo';
+
 export type GroupInfo = {
   id: number;
   name?: string;
@@ -6,4 +9,7 @@ export type GroupInfo = {
   created_at: string;
   type: string;
   tags?: string[];
+  servers?: GroupServerInfo[];
+  allowed_server_count?: number;
+  roles?: GroupRoleInfo[];
 };

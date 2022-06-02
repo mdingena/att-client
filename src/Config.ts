@@ -15,15 +15,12 @@ export type Scope =
   | 'ws.group_members'
   | 'ws.group_servers';
 
-export type ServerType = 'pcvr' | 'quest';
-
 export interface Config {
   clientId: string;
   clientSecret: string;
   console?: Pick<Console, 'error' | 'warn' | 'info' | 'debug'>;
-  excludedServers?: number[];
-  includedServers?: number[];
+  excludedGroups?: number[];
+  includedGroups?: number[];
   logVerbosity?: Verbosity;
   scope: Scope[];
-  supportedServers?: ServerType[];
 }

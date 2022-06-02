@@ -1,23 +1,11 @@
+import type { ApiRequest } from './ApiRequest';
 import type { ApiResponse } from './ApiResponse';
-import type { Scope } from '../Config';
 import type { HttpMethod } from './HttpMethod';
 import { Endpoint } from './Endpoint';
 import { REST_BASE_URL, X_API_KEY } from '../constants';
 import { Logger, Verbosity } from '../Logger';
 
-export type DecodedToken = {
-  nbf: number;
-  exp: number;
-  iss: string;
-  aud: string[];
-  client_id: string;
-  client_sub: string;
-  client_username: string;
-  client_bot: 'true' | 'false';
-  scope: Scope;
-};
-
-type Parameters = { [parameter: string]: string | number };
+type Parameters = Record<string, string | number>;
 
 export class Api {
   accessToken?: string;
@@ -32,7 +20,7 @@ export class Api {
   }
 
   /**
-   * Authorise API requests with an access token.
+   * Authorises API requests with an access token.
    */
   auth(userId: string, accessToken: string) {
     this.accessToken = accessToken;
@@ -45,68 +33,121 @@ export class Api {
     this.userId = userId;
   }
 
-  acceptGroupInvite(groupIdentifier: number) {
-    return this.post(Endpoint.AcceptGroupInvite, { groupIdentifier });
+  /**
+   * Accepts a group's invite.
+   */
+  acceptGroupInvite(groupId: number) {
+    return this.post(Endpoint.AcceptGroupInvite, { groupId });
   }
 
-  declineGroupInvite(groupIdentifier: number) {
-    return this.delete(Endpoint.DeclineGroupInvite, { groupIdentifier });
+  /**
+   * Gets a group's information such as name, description, roles and servers.
+   */
+  getGroupInfo(groupId: number) {
+    return this.get(Endpoint.GroupInfo, { groupId });
   }
 
+  /**
+   * Gets a group's member's information, such as name, user ID and group role ID.
+   */
+  getGroupMember(groupId: number, userId: string) {
+    return this.get(Endpoint.GroupMember, { groupId, userId });
+  }
+
+  /**
+   * Gets all groups that this client is a member of. Returns group info and client's
+   * membership info for each group.
+   */
   getJoinedGroups() {
-    return this.get(Endpoint.JoinedGroups, { limit: 1000 });
+    return this.get(Endpoint.JoinedGroups, undefined, { limit: 1000 });
   }
 
+  /**
+   * Gets all open group invitations for this client.
+   */
   getPendingGroupInvites() {
-    return this.get(Endpoint.GroupInvites, { limit: 1000 });
+    return this.get(Endpoint.GroupInvites, undefined, { limit: 1000 });
   }
 
-  private get<T extends Endpoint>(endpoint: T, params?: Parameters): Promise<ApiResponse<`GET ${T}`>['body']> {
-    const url = new URL(`${REST_BASE_URL}${endpoint}`);
+  /**
+   * Gets a server's console connection details.
+   */
+  getServerConnectionDetails(serverId: number) {
+    return this.post(Endpoint.ServerConsole, { serverId }, undefined, { should_launch: false, ignore_offline: false });
+  }
 
-    if (typeof params !== 'undefined') {
-      Object.entries(params).forEach(([key, value]) => url.searchParams.append(key, value.toString()));
-    }
+  /**
+   * Gets a server's information, such as online players and heartbeat status.
+   */
+  getServerInfo(serverId: number) {
+    return this.get(Endpoint.ServerInfo, { serverId });
+  }
+
+  /**
+   * Sends a GET request to Alta's API.
+   */
+  private get<T extends Endpoint>(
+    endpoint: T,
+    params?: Parameters,
+    query?: Parameters
+  ): Promise<undefined | ApiResponse<`GET ${T}`>['body']> {
+    const url = this.createUrl(endpoint, params, query);
 
     return this.request('GET', url);
   }
 
+  /**
+   * Sends a POST request to Alta's API.
+   */
   private post<T extends Endpoint>(
     endpoint: T,
-    params?: Partial<Parameters>
-  ): Promise<ApiResponse<`POST ${T}`>['body']> {
-    const interpolatedEndpoint = this.interpolateEndpoint(endpoint, params);
-    const url = new URL(`${REST_BASE_URL}${interpolatedEndpoint}`);
+    params?: Partial<Parameters>,
+    query?: Parameters,
+    payload?: ApiRequest
+  ): Promise<undefined | ApiResponse<`POST ${T}`>['body']> {
+    const url = this.createUrl(endpoint, params, query);
 
-    return this.request('POST', url);
+    return this.request('POST', url, payload);
   }
 
-  private delete<T extends Endpoint>(
-    endpoint: T,
-    params?: Partial<Parameters>
-  ): Promise<ApiResponse<`DELETE ${T}`>['body']> {
-    const interpolatedEndpoint = this.interpolateEndpoint(endpoint, params);
-    const url = new URL(`${REST_BASE_URL}${interpolatedEndpoint}`);
-
-    return this.request('DELETE', url);
-  }
-
-  private async request(method: HttpMethod, url: URL) {
+  /**
+   * Constructs a request to send to Alta's API.
+   */
+  private async request(method: HttpMethod, url: URL, payload?: ApiRequest) {
     if (typeof this.headers === 'undefined' || typeof this.userId === 'undefined') {
-      throw new Error('API is not initialised.');
+      this.logger.error('API is not initialised.');
+      return;
     }
 
-    this.logger.debug(`Requesting ${method} ${url}`);
+    this.logger.debug(`Requesting ${method} ${url}`, payload);
 
-    const response = await fetch(url.toString(), { method, headers: this.headers });
-    const body = await response.json();
+    const response = await fetch(url.toString(), {
+      method,
+      headers: this.headers,
+      body: typeof payload === 'undefined' ? null : JSON.stringify(payload)
+    });
 
-    if (!response.ok) throw new Error(response.statusText);
+    if (!response.ok) {
+      this.logger.error(response.statusText);
+      return;
+    }
 
-    return body;
+    return await response.json();
   }
 
-  private interpolateEndpoint<T extends Endpoint>(template: T, params: Partial<Parameters> = {}) {
-    return template.replace(/{(.*?)}/g, (_, match) => params[match]?.toString() ?? `{${match}}`);
+  /**
+   * Creates a URL by populating an endpoint template with parameters and optional
+   * query string.
+   */
+  private createUrl<T extends Endpoint>(template: T, params: Partial<Parameters> = {}, query?: Parameters) {
+    const endpoint = template.replace(/{(.*?)}/g, (_, match) => params[match]?.toString() ?? `{${match}}`);
+
+    const url = new URL(`${REST_BASE_URL}${endpoint}`);
+
+    if (typeof query !== 'undefined') {
+      Object.entries(query).forEach(([key, value]) => url.searchParams.append(key, value.toString()));
+    }
+
+    return url;
   }
 }

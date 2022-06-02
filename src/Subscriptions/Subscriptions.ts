@@ -1,30 +1,30 @@
-import type { Message } from './Message';
-import { EventEmitter } from 'stream';
+import type { Client } from '../Client';
+import type { Logger } from '../Logger';
+import type { ClientEventMessage } from './ClientEventMessage';
+import type { ClientEvent } from './ClientEvent';
+import { EventEmitter } from 'events';
 import { WebSocket } from 'ws';
-import { Logger, Verbosity } from '../Logger';
 import { HttpMethod, HttpResponseCode } from '../Api';
 import { WEBSOCKET_PING_INTERVAL, WEBSOCKET_URL, X_API_KEY } from '../constants';
 
-export const enum Subscription {
-  GroupInvitationRequested = 'me-group-invite-create',
-  GroupInvitationRevoked = 'me-group-invite-delete',
-  JoinedGroup = 'me-group-create',
-  LeftGroup = 'me-group-delete'
-}
-
 export class Subscriptions {
-  accessToken?: string;
-  clientId: string;
-  events: EventEmitter;
-  logger: Logger;
-  messageId: number;
-  subscriptions: string[];
-  ws?: WebSocket;
+  parent: Client;
 
-  constructor(clientId: string, logger: Logger = new Logger(Verbosity.Warning)) {
-    this.clientId = clientId;
+  private accessToken?: string;
+  private clientId: string;
+  private events: EventEmitter;
+  // private isMigrating: Promise<void>;
+  private logger: Logger;
+  private messageId: number;
+  private subscriptions: string[];
+  private ws?: WebSocket;
+
+  constructor(parent: Client) {
+    this.clientId = parent.config.clientId;
     this.events = new EventEmitter();
-    this.logger = logger;
+    // this.isMigrating = Promise.resolve();
+    this.logger = parent.logger;
+    this.parent = parent;
     this.messageId = 1;
     this.subscriptions = [];
   }
@@ -64,7 +64,8 @@ export class Subscriptions {
   //   this.logger.info('Tearing down WebSocket instance.');
 
   //   if (typeof this.webSocket === 'undefined') {
-  //     return this.logger.error('There is no WebSocket to destroy.');
+  //     this.logger.error('There is no WebSocket to destroy.');
+  //     return;
   //   }
 
   //   this.webSocket.removeAllListeners();
@@ -111,7 +112,7 @@ export class Subscriptions {
         }
 
         const message = JSON.parse(data.toString());
-        that.logger.debug(`Received ${message.event} message with ID ${message.id}.`);
+        that.logger.debug(`Received ${message.event} message with ID ${message.id}.`, message);
 
         if (message.id === 0) {
           that.events.emit(`${message.event}/${message.key}`, {
@@ -163,64 +164,73 @@ export class Subscriptions {
   /**
    * Sends a WebSocket request and returns a Promise of the response.
    */
-  private send<T>(method: HttpMethod, path: string, payload?: { [key: string]: unknown }) {
-    return new Promise((resolve: (message: Message<T>) => void, reject: (error?: Error | Message<T>) => void) => {
-      if (typeof this.accessToken === 'undefined' || typeof this.ws === 'undefined') {
-        this.logger.error(
-          'Subscriptions has invalid internals. Did you initialise Subscriptions with a valid access token and decoded token?'
-        );
-        this.logger.debug('Subscriptions.accessToken', this.accessToken);
-        this.logger.debug('Subscriptions.ws', this.ws);
+  private send<T>(method: HttpMethod, path: string, payload?: Record<string, unknown>) {
+    return new Promise(
+      (resolve: (message: ClientEventMessage<T>) => void, reject: (error?: Error | ClientEventMessage<T>) => void) => {
+        if (typeof this.accessToken === 'undefined' || typeof this.ws === 'undefined') {
+          this.logger.error(
+            'Subscriptions has invalid internals. Did you initialise Subscriptions with a valid access token and decoded token?'
+          );
+          this.logger.debug('Subscriptions.accessToken', this.accessToken);
+          this.logger.debug('Subscriptions.ws', this.ws);
 
-        throw new Error("Can't send message on WebSocket.");
-      }
-
-      const id = this.getMessageId();
-
-      this.logger.debug(`Registering one-time event handler for message-${id}.`);
-      this.events.once(`message-${id}`, function (message: Message<T>) {
-        if (message.responseCode === HttpResponseCode.Ok) {
-          resolve(message);
-        } else {
-          reject(message);
+          reject(new Error("Can't send message on WebSocket."));
+          return;
         }
-      });
 
-      const message = {
-        method,
-        path,
-        authorization: `Bearer ${this.accessToken}`,
-        id,
-        ...payload
-      };
+        const id = this.getMessageId();
 
-      this.logger.debug('Sending message.', message);
-      this.ws.send(JSON.stringify(message), error => typeof error !== 'undefined' && reject(error));
-    });
+        this.logger.debug(`Registering one-time event handler for message-${id}.`);
+        this.events.once(`message-${id}`, (message: ClientEventMessage<T>) => {
+          if (message.responseCode === HttpResponseCode.Ok) {
+            resolve(message);
+          } else {
+            reject(message);
+          }
+        });
+
+        const message = {
+          method,
+          path,
+          authorization: `Bearer ${this.accessToken}`,
+          id,
+          ...payload
+        };
+
+        this.logger.debug('Sending message.', message);
+        this.ws.send(JSON.stringify(message), error => typeof error !== 'undefined' && reject(error));
+      }
+    );
   }
 
   /**
    * Subscribes to an account message and registers a callback for it.
    */
-  subscribe<T extends Subscription>(event: T, key: string, callback: (message: Message<T>) => unknown) {
+  subscribe<T extends ClientEvent>(event: T, key: string, callback: (message: ClientEventMessage<T>) => void) {
     const subscription = `${event}/${key}`;
 
-    if (this.subscriptions.includes(subscription)) throw new Error(`Already subscribed to ${subscription}.`);
+    if (this.subscriptions.includes(subscription)) {
+      this.logger.error(`Already subscribed to ${subscription}.`);
+      return;
+    }
 
     this.logger.debug(`Subscribing to ${subscription}.`);
     this.subscriptions = [...this.subscriptions, subscription];
     this.events.on(subscription, callback);
 
-    return this.send<typeof event>('POST', `subscription/${subscription}`);
+    return this.send<T>('POST', `subscription/${subscription}`);
   }
 
   /**
-   * Unsubscribes to an account message and removes the callback for it.
+   * Unsubscribes to an account message and removes all callbacks for it.
    */
-  unsubscribe<T extends Subscription>(event: T, key: string) {
+  unsubscribe<T extends ClientEvent>(event: T, key: string) {
     const subscription = `${event}/${key}`;
 
-    if (!this.subscriptions.includes(subscription)) throw new Error(`Subscription to ${subscription} does not exist.`);
+    if (!this.subscriptions.includes(subscription)) {
+      this.logger.error(`Subscription to ${subscription} does not exist.`);
+      return;
+    }
 
     this.logger.debug(`Unsubscribing to ${subscription}.`);
     this.subscriptions = this.subscriptions.filter(existing => existing !== subscription);

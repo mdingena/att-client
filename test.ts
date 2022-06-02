@@ -22,4 +22,15 @@ const client = new Client({
   logVerbosity: Verbosity.Debug
 });
 
-client.init();
+client.on('connect', connection => {
+  connection.subscribe('PlayerMovedChunk', message => {
+    const {
+      player: { id },
+      newChunk
+    } = message.data;
+
+    console.log(`${id} moved to ${newChunk}.`);
+  });
+});
+
+client.start();
