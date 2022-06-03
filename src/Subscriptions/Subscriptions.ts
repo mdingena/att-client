@@ -193,7 +193,7 @@ export class Subscriptions {
     await this.send('POST', 'migrate', { token });
     await new Promise(resolve => {
       this.logger.info(
-        `Successfully migrated WebSocket. Gracefully shutting down old WebSocket in ${WEBSOCKET_MIGRATION_HANDOVER_PERIOD} seconds.`
+        `Successfully migrated WebSocket. Gracefully shutting down old WebSocket in ${WEBSOCKET_MIGRATION_HANDOVER_PERIOD} ms.`
       );
 
       setTimeout(() => {
