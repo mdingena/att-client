@@ -1,4 +1,5 @@
 export const enum Verbosity {
+  Quiet,
   Error,
   Warning,
   Info,
