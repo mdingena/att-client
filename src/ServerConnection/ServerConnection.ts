@@ -68,7 +68,12 @@ export class ServerConnection extends (EventEmitter as new () => TypedEmitter<Se
       }
 
       const message = JSON.parse(data.toString());
-      const eventName = `${message.type}${typeof message.eventType === 'undefined' ? '' : `/${message.eventType}`}`;
+
+      const eventName =
+        typeof message.commandId === 'undefined'
+          ? `${message.type}${typeof message.eventType === 'undefined' ? '' : `/${message.eventType}`}`
+          : `command-${message.commandId}`;
+
       that.logger.debug(`Console ${that.serverId} received ${eventName} message.`, JSON.stringify(message, null, 2));
 
       if (
