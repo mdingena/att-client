@@ -7,7 +7,13 @@ import type { ClientResponseMessage } from './ClientResponseMessage';
 import { EventEmitter } from 'events';
 import { WebSocket } from 'ws';
 import { HttpMethod, HttpResponseCode } from '../Api';
-import { WEBSOCKET_MIGRATION_HANDOVER_PERIOD, WEBSOCKET_PING_INTERVAL, WEBSOCKET_URL, X_API_KEY } from '../constants';
+import {
+  WEBSOCKET_MIGRATION_HANDOVER_PERIOD,
+  WEBSOCKET_MIGRATION_INTERVAL,
+  WEBSOCKET_PING_INTERVAL,
+  WEBSOCKET_URL,
+  X_API_KEY
+} from '../constants';
 
 export class Subscriptions {
   parent: Client;
@@ -60,6 +66,8 @@ export class Subscriptions {
 
     const ws = new WebSocket(WEBSOCKET_URL, { headers });
     this.logger.debug('Created new WebSocket.', ws);
+
+    setTimeout(this.migrate, WEBSOCKET_MIGRATION_INTERVAL);
 
     return ws;
   }
