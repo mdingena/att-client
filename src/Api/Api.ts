@@ -1,36 +1,41 @@
 import type { ApiRequest } from './ApiRequest';
 import type { ApiResponse } from './ApiResponse';
 import type { HttpMethod } from './HttpMethod';
+import type { Client } from '../Client';
+import type { Logger } from '../Logger';
 import { Endpoint } from './Endpoint';
 import { REST_BASE_URL, X_API_KEY } from '../constants';
-import { Logger, Verbosity } from '../Logger';
 
 type Parameters = Record<string, string | number>;
 
 export class Api {
-  accessToken?: string;
-  clientId: string;
-  headers?: Headers;
-  logger: Logger;
-  userId?: string;
+  parent: Client;
 
-  constructor(clientId: string, logger: Logger = new Logger(Verbosity.Warning)) {
-    this.clientId = clientId;
-    this.logger = logger;
+  private clientId: string;
+  private headers?: Headers;
+  private logger: Logger;
+
+  constructor(parent: Client) {
+    this.clientId = parent.config.clientId;
+    this.logger = parent.logger;
+    this.parent = parent;
   }
 
   /**
    * Authorises API requests with an access token.
    */
-  auth(userId: string, accessToken: string) {
-    this.accessToken = accessToken;
+  auth() {
+    if (typeof this.parent.accessToken === 'undefined') {
+      this.logger.error("Can't authorise API requests without an access token.");
+      return;
+    }
+
     this.headers = new Headers({
       'Content-Type': 'application/json',
       'x-api-key': X_API_KEY,
       'User-Agent': this.clientId,
-      'Authorization': `Bearer ${accessToken}`
+      'Authorization': `Bearer ${this.parent.accessToken}`
     });
-    this.userId = userId;
   }
 
   /**
@@ -114,7 +119,7 @@ export class Api {
    * Constructs a request to send to Alta's API.
    */
   private async request(method: HttpMethod, url: URL, payload?: ApiRequest) {
-    if (typeof this.headers === 'undefined' || typeof this.userId === 'undefined') {
+    if (typeof this.headers === 'undefined') {
       this.logger.error('API is not initialised.');
       return;
     }

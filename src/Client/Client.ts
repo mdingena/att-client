@@ -17,13 +17,13 @@ type Events = {
 type Groups = Record<number, Group>;
 
 export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>) {
+  accessToken?: string;
   api: Api;
   config: Required<Config>;
   groups: Groups;
   logger: Logger;
   subscriptions: Subscriptions;
 
-  private accessToken?: string;
   private decodedToken?: DecodedToken;
   private initialised: boolean;
 
@@ -79,8 +79,8 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
     };
 
     /* Initialise internals. */
-    this.api = new Api(config.clientId, this.logger);
     // this.events = new EventEmitter();
+    this.api = new Api(this);
     this.groups = {};
     this.initialised = false;
     // this.messageId = 0;
@@ -108,7 +108,7 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
     const userId = this.decodedToken.client_sub;
 
     /* Authorise API interface. */
-    this.api.auth(userId, this.accessToken);
+    this.api.auth();
 
     /* Initialise subscriptions. */
     this.logger.info('Subscribing to events.');
