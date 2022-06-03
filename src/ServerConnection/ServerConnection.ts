@@ -125,8 +125,8 @@ export class ServerConnection extends (EventEmitter as new () => TypedEmitter<Se
    * To subscribe or unsubscribe from server events, please use
    * `ServerConnection.subscribe()` or `ServerConnection.unsubscribe()`.
    * @example
-   * client.on('connect', connection => {
-   *   connection.send('player message * "Bot connected to this server" 5');
+   * client.on('connect', async connection => {
+   *   const commandResult = await connection.send('player message * "Bot connected to this server" 5');
    * });
    */
   send(command: string) {
@@ -162,8 +162,8 @@ export class ServerConnection extends (EventEmitter as new () => TypedEmitter<Se
   /**
    * Subscribes to a server event and registers a callback for it.
    * @example
-   * client.on('connect', connection => {
-   *   connection.subscribe('PlayerMovedChunk', message => {
+   * client.on('connect', async connection => {
+   *   const subscribeResult = await connection.subscribe('PlayerMovedChunk', message => {
    *     const { player, newChunk } = message.data;
    *     connection.send(`player message ${player.id} "${newChunk}" 3`);
    *   });
@@ -185,10 +185,10 @@ export class ServerConnection extends (EventEmitter as new () => TypedEmitter<Se
   /**
    * Unsubscribes to a server event and removes all callbacks for it.
    * @example
-   * client.on('connect', connection => {
-   *   connection.subscribe('PlayerMovedChunk', callback);
+   * client.on('connect', async connection => {
+   *   const subscribeResult = await connection.subscribe('PlayerMovedChunk', callback);
    *   // ...
-   *   connection.unsubscribe('PlayerMovedChunk');
+   *   const unsubscribeResult = await connection.unsubscribe('PlayerMovedChunk');
    * });
    */
   unsubscribe<T extends SubscriptionEvent>(event: T) {
