@@ -2,7 +2,7 @@ import type { GroupInfo, GroupMemberInfo, ServerInfo } from '../Api/schemas';
 import type { ClientEvent } from './ClientEvent';
 
 type EventMessage<T extends ClientEvent> = {
-  id: number;
+  id: 0;
   event: T;
   key: string;
   responseCode: number;

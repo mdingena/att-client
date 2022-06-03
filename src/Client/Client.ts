@@ -110,7 +110,7 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
 
     /* Initialise subscriptions. */
     this.logger.info('Subscribing to events.');
-    await this.subscriptions.init(this.accessToken);
+    await this.subscriptions.init();
 
     try {
       /* Subscribe to account messages. */

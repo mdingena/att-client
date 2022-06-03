@@ -1,0 +1,18 @@
+export type SubscriptionEvent =
+  | 'DebugLog'
+  | 'ErrorLog'
+  | 'FatalLog'
+  | 'InfoLog'
+  | 'ObjectKilled'
+  | 'PlayerJoined'
+  | 'PlayerKilled'
+  | 'PlayerLeft'
+  | 'PlayerMovedChunk'
+  | 'PlayerStateChanged'
+  | 'PopulationModified'
+  | 'ProfilingData'
+  | 'TraceLog'
+  | 'TradeDeckUsed'
+  | 'TrialFinished'
+  | 'TrialStarted'
+  | 'WarnLog';

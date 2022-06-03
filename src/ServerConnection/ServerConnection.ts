@@ -1,10 +1,11 @@
 import type TypedEmitter from 'typed-emitter';
+import type { CommandResultMessage } from './CommandResultMessage';
+import type { SubscriptionEvent } from './SubscriptionEvent';
+import type { SubscriptionEventMessage } from './SubscriptionEventMessage';
 import type { Logger } from '../Logger';
 import type { Server } from '../Server';
-import type { SubscriptionEventMessage, SubscriptionEventType } from './SubscriptionEventMessage';
 import EventEmitter from 'events';
 import { WebSocket } from 'ws';
-import type { CommandResultMessage } from './CommandResultMessage';
 
 type ServerConnectionEvents = {
   close: (code?: number, reason?: Buffer) => void;
@@ -19,7 +20,7 @@ export class ServerConnection extends (EventEmitter as new () => TypedEmitter<Se
   private events: EventEmitter;
   private logger: Logger;
   private serverId: number;
-  private subscribedEvents: SubscriptionEventType[];
+  private subscribedEvents: SubscriptionEvent[];
   private ws: WebSocket;
 
   constructor(parent: Server, address: string, port: number, token: string) {
@@ -163,7 +164,7 @@ export class ServerConnection extends (EventEmitter as new () => TypedEmitter<Se
    *   });
    * });
    */
-  subscribe<T extends SubscriptionEventType>(event: T, callback: (message: SubscriptionEventMessage<T>) => unknown) {
+  subscribe<T extends SubscriptionEvent>(event: T, callback: (message: SubscriptionEventMessage<T>) => unknown) {
     if (this.subscribedEvents.includes(event)) {
       this.logger.error(`Already subscribed to ${event} on server ${this.serverId}.`);
       return;
@@ -185,7 +186,7 @@ export class ServerConnection extends (EventEmitter as new () => TypedEmitter<Se
    *   connection.unsubscribe('PlayerMovedChunk');
    * });
    */
-  unsubscribe<T extends SubscriptionEventType>(event: T) {
+  unsubscribe<T extends SubscriptionEvent>(event: T) {
     if (!this.subscribedEvents.includes(event)) {
       this.logger.error(`Subscription to ${event} does not exist on server ${this.serverId}.`);
       return;
