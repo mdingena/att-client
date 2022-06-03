@@ -17,6 +17,8 @@ export const SERVER_HEARTBEAT_TIMEOUT = 10 * MINUTE;
 
 export const TOKEN_URL = 'https://accounts.townshiptale.com/connect/token';
 
+export const WEBSOCKET_MIGRATION_HANDOVER_PERIOD = 10 * SECOND;
+
 export const WEBSOCKET_MIGRATION_INTERVAL = 110 * MINUTE;
 
 export const WEBSOCKET_PING_INTERVAL = 5 * MINUTE;
