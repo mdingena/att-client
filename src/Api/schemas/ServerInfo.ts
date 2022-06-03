@@ -1,4 +1,7 @@
-import type { ServerOnlinePlayers } from './ServerOnlinePlayers';
+type ServerOnlinePlayers = {
+  id: number;
+  username: string;
+};
 
 export type ServerInfo = {
   id: number;
