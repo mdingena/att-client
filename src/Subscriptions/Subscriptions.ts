@@ -58,22 +58,6 @@ export class Subscriptions {
   }
 
   /**
-   * Destroys current WebSocket instance.
-   */
-  // private destroyWebSocket(): void {
-  //   this.logger.info('Tearing down WebSocket instance.');
-
-  //   if (typeof this.webSocket === 'undefined') {
-  //     this.logger.error('There is no WebSocket to destroy.');
-  //     return;
-  //   }
-
-  //   this.webSocket.removeAllListeners();
-
-  //   delete this.webSocket;
-  // }
-
-  /**
    * Takes a WebSocket instance and registers event handlers and timers to manage it.
    */
   private registerEventHandlers(ws: WebSocket): Promise<void> {

@@ -79,11 +79,9 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
     };
 
     /* Initialise internals. */
-    // this.events = new EventEmitter();
     this.api = new Api(this);
     this.groups = {};
     this.initialised = false;
-    // this.messageId = 0;
     this.subscriptions = new Subscriptions(this);
   }
 
