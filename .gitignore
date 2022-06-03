@@ -8,6 +8,7 @@ yarn.lock
 
 # testing
 /coverage
+test.ts
 
 # production
 /dist
