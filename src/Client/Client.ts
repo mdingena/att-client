@@ -99,11 +99,10 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
     this.initialised = true;
     this.logger.info('Initialising client.');
 
-    /* Retrieve and decode JWT. */
-    this.accessToken = await this.getAccessToken();
-    this.decodedToken = this.decodeToken(this.accessToken);
+    /* Configure access token and decoded token. */
+    const decodedToken = await this.refreshTokens();
 
-    const userId = this.decodedToken.client_sub;
+    const userId = decodedToken.client_sub;
 
     /* Authorise API interface. */
     this.api.auth();
@@ -184,6 +183,22 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
     }
 
     this.logger.info('Client initialised.');
+  }
+
+  /**
+   * Refreshes client's access token and decoded token.
+   */
+  private async refreshTokens() {
+    /* Retrieve and decode JWT. */
+    this.accessToken = await this.getAccessToken();
+    this.decodedToken = this.decodeToken(this.accessToken);
+
+    /* Schedule JWT refresh. */
+    const tokenExpiresAfter = 1000 * this.decodedToken.exp - Date.now();
+    const tokenRefreshDelay = Math.floor(tokenExpiresAfter * 0.9);
+    setTimeout(this.refreshTokens.bind(this), tokenRefreshDelay);
+
+    return this.decodedToken;
   }
 
   /**
