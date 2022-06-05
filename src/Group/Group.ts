@@ -12,11 +12,11 @@ export class Group {
   id: number;
   name: string;
   parent: Client;
+  servers: Servers;
 
   private api: Api;
   private permissions: string[];
   private logger: Logger;
-  private servers: Servers;
   private subscriptions: Subscriptions;
   private userId: number;
 
