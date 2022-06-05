@@ -12,6 +12,7 @@ import { Subscriptions } from '../Subscriptions';
 
 type Events = {
   connect: (serverConnection: ServerConnection) => void;
+  ready: () => void;
 };
 
 type Groups = Record<number, Group>;
@@ -180,9 +181,11 @@ export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>
       }
     } catch (error) {
       this.logger.error(error);
+      return;
     }
 
     this.logger.info('Client initialised.');
+    this.emit('ready');
   }
 
   /**
