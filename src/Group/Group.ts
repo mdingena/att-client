@@ -57,7 +57,7 @@ export class Group {
         const member = await this.api.getGroupMember(this.id, this.userId.toString());
 
         if (typeof member === 'undefined') {
-          this.logger.error(`Couldn't find group member info for group ${group.id}`);
+          this.logger.error(`Couldn't find group member info for group ${group.id} (${this.name}).`);
           return;
         }
 
@@ -76,7 +76,7 @@ export class Group {
         const group = await this.api.getGroupInfo(this.id);
 
         if (typeof group === 'undefined') {
-          this.logger.error(`Couldn't get info for group ${this.id}.`);
+          this.logger.error(`Couldn't get info for group ${this.id} (${this.name}).`);
           return;
         }
 
@@ -90,7 +90,7 @@ export class Group {
       this.subscriptions.subscribe('group-server-status', this.id.toString(), async message => {
         const status = message.content;
 
-        this.logger.debug(`Status updated for server ${status.id}.`, status);
+        this.logger.debug(`Status updated for server ${status.id} (${status.name}).`, status);
         this.manageServerConnection(status);
       }),
 
@@ -147,7 +147,7 @@ export class Group {
     const status = await this.api.getServerInfo(serverId);
 
     if (typeof status === 'undefined') {
-      this.logger.error(`Couldn't get status for server ${serverId}.`);
+      this.logger.error(`Couldn't get status for server ${serverId} (${this.name}).`);
       return;
     }
 
@@ -162,9 +162,9 @@ export class Group {
     this.permissions = this.getPermissions(group, member);
 
     if (!previousPermissions.includes('Console') && this.permissions.includes('Console')) {
-      this.logger.info(`Client gained console access to servers in group ${this.id}.`);
+      this.logger.info(`Client gained console access to servers in group ${this.id} (${this.name}).`);
     } else if (previousPermissions.includes('Console') && !this.permissions.includes('Console')) {
-      this.logger.info(`Client lost console access to servers in group ${this.id}.`);
+      this.logger.info(`Client lost console access to servers in group ${this.id} (${this.name}).`);
     }
 
     this.updateServers();
@@ -190,7 +190,7 @@ export class Group {
     const server = this.servers[serverId];
 
     if (typeof server === 'undefined') {
-      this.logger.error(`Server ${serverId} not found in group ${this.id}.`);
+      this.logger.error(`Server ${serverId} not found in group ${this.id} (${this.name}).`);
       return;
     }
 
@@ -210,7 +210,7 @@ export class Group {
    * Starts managing all servers listed in a given group info.
    */
   private addServers(group: GroupInfo) {
-    this.logger.debug(`Adding all servers for group ${this.id}.`);
+    this.logger.debug(`Adding all servers for group ${this.id} (${this.name}).`);
 
     for (const server of group.servers ?? []) {
       this.addServer(server.id);
@@ -221,10 +221,10 @@ export class Group {
    * Starts managing the given server.
    */
   private addServer(serverId: number) {
-    this.logger.debug(`Adding server ${serverId}.`);
+    this.logger.debug(`Adding server ${serverId} (${this.name}).`);
 
     if (Object.keys(this.servers).map(Number).includes(serverId)) {
-      this.logger.error(`Can't add server ${serverId} more than once.`);
+      this.logger.error(`Can't add server ${serverId} (${this.name}) more than once.`);
       return;
     }
 
@@ -238,7 +238,7 @@ export class Group {
    * Removes all managed servers from this group.
    */
   private removeServers() {
-    this.logger.debug(`Removing all servers from group ${this.id}.`);
+    this.logger.debug(`Removing all servers from group ${this.id} (${this.name}).`);
 
     for (const server of Object.values(this.servers)) {
       this.removeServer(server.id);
@@ -249,12 +249,12 @@ export class Group {
    * Removes the given managed server from this group.
    */
   private removeServer(serverId: number) {
-    this.logger.debug(`Removing server ${serverId}.`);
+    this.logger.debug(`Removing server ${serverId} (${this.name}).`);
 
     const server = this.servers[serverId];
 
     if (typeof server === 'undefined') {
-      this.logger.error(`Can't remove an unmanaged server with ID ${serverId}.`);
+      this.logger.error(`Can't remove an unmanaged server with ID ${serverId} (${this.name}).`);
       return;
     }
 

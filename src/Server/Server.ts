@@ -6,6 +6,7 @@ import { ServerConnection } from '../ServerConnection';
 export class Server {
   groupId: number;
   id: number;
+  name: string;
   parent: Group;
   status: 'disconnected' | 'connecting' | 'connected';
 
@@ -19,6 +20,7 @@ export class Server {
     this.api = parent.parent.api;
     this.groupId = parent.id;
     this.id = serverId;
+    this.name = parent.name;
     this.parent = parent;
     this.status = 'disconnected';
   }
@@ -28,18 +30,18 @@ export class Server {
    */
   async connect() {
     if (typeof this.connection !== 'undefined') {
-      this.logger.error(`Can't open a second connection to server ${this.id}'s console.`);
+      this.logger.error(`Can't open a second connection to server ${this.id}'s (${this.name}) console.`);
       return;
     }
 
     const connectionDetails = await this.api.getServerConnectionDetails(this.id);
 
     if (typeof connectionDetails === 'undefined') {
-      this.logger.error(`Couldn't get connection details for server ${this.id}.`);
+      this.logger.error(`Couldn't get connection details for server ${this.id} (${this.name}).`);
       return;
     }
 
-    this.logger.debug(`Got connection details for server ${this.id}.`, connectionDetails);
+    this.logger.debug(`Got connection details for server ${this.id} (${this.name}).`, connectionDetails);
 
     const {
       allowed,
@@ -49,7 +51,7 @@ export class Server {
 
     if (!allowed) {
       this.logger.error(
-        `This client is not allowed to use server ${this.id}'s console. Check that the bot account for this client was granted "Console" permissions.`
+        `This client is not allowed to use server ${this.id}'s (${this.name}) console. Check that the bot account for this client was granted "Console" permissions.`
       );
       return;
     }
@@ -58,18 +60,18 @@ export class Server {
     const that = this;
 
     function handleError(error: Error) {
-      that.logger.error(`Error on console connection on server ${that.id}.`, error);
+      that.logger.error(`Error on console connection on server ${that.id} (${that.name}).`, error);
     }
 
     function handleOpen() {
-      that.logger.info(`Console connection opened on server ${that.id}.`);
+      that.logger.info(`Console connection opened on server ${that.id} (${that.name}).`);
       that.status = 'connected';
       that.parent.parent.emit('connect', connection);
     }
 
     function handleClose(code?: number, reason?: Buffer) {
       connection.off('open', handleOpen);
-      that.logger.info(`Console connection closed on server ${that.id}.`, code, reason?.toString());
+      that.logger.info(`Console connection closed on server ${that.id} (${that.name}).`, code, reason?.toString());
       that.status = 'disconnected';
     }
 
@@ -88,7 +90,7 @@ export class Server {
   disconnect() {
     if (typeof this.connection === 'undefined') return;
 
-    this.logger.debug(`Closing console connection to server ${this.id}.`);
+    this.logger.debug(`Closing console connection to server ${this.id} (${this.name}).`);
     this.connection.dispose();
     delete this.connection;
   }
