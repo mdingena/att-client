@@ -1,19 +1,19 @@
-import type TypedEmitter from 'typed-emitter';
 import type { CommandResultMessage } from './CommandResultMessage';
 import type { SubscriptionEvent } from './SubscriptionEvent';
 import type { SubscriptionEventMessage } from './SubscriptionEventMessage';
 import type { Logger } from '../Logger';
 import type { Server } from '../Server';
 import EventEmitter from 'events';
+import { TypedEmitter } from 'tiny-typed-emitter';
 import { WebSocket } from 'ws';
 
-type ServerConnectionEvents = {
+interface ServerConnectionEvents {
   close: (code?: number, reason?: Buffer) => void;
   error: (error: Error) => void;
   open: () => void;
-};
+}
 
-export class ServerConnection extends (EventEmitter as new () => TypedEmitter<ServerConnectionEvents>) {
+export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
   parent: Server;
 
   private commandId: number;

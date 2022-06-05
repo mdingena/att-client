@@ -1,8 +1,7 @@
-import type TypedEventEmitter from 'typed-emitter';
 import type { GroupInfo, GroupMemberInfo } from '../Api/schemas';
 import type { Config } from '../Config';
 import type { ServerConnection } from '../ServerConnection';
-import EventEmitter from 'events';
+import { TypedEmitter } from 'tiny-typed-emitter';
 import jwtDecode from 'jwt-decode';
 import { Api, DecodedToken } from '../Api';
 import { DEFAULTS, TOKEN_URL } from '../constants';
@@ -10,14 +9,14 @@ import { Group } from '../Group';
 import { Logger } from '../Logger';
 import { Subscriptions } from '../Subscriptions';
 
-type Events = {
+interface Events {
   connect: (serverConnection: ServerConnection) => void;
   ready: () => void;
-};
+}
 
 type Groups = Record<number, Group>;
 
-export class Client extends (EventEmitter as new () => TypedEventEmitter<Events>) {
+export class Client extends TypedEmitter<Events> {
   accessToken?: string;
   api: Api;
   config: Required<Config>;
