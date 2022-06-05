@@ -4,24 +4,22 @@ import type { Logger } from '../Logger';
 import { ServerConnection } from '../ServerConnection';
 
 export class Server {
-  groupId: number;
+  group: Group;
   id: number;
   name: string;
-  parent: Group;
   status: 'disconnected' | 'connecting' | 'connected';
 
   private api: Api;
   private connection?: ServerConnection;
   private logger: Logger;
 
-  constructor(parent: Group, serverId: number) {
-    this.logger = parent.parent.logger;
+  constructor(group: Group, serverId: number) {
+    this.logger = group.client.logger;
 
-    this.api = parent.parent.api;
-    this.groupId = parent.id;
+    this.api = group.client.api;
+    this.group = group;
     this.id = serverId;
-    this.name = parent.name;
-    this.parent = parent;
+    this.name = group.name;
     this.status = 'disconnected';
   }
 
@@ -66,7 +64,7 @@ export class Server {
     function handleOpen() {
       that.logger.info(`Console connection opened on server ${that.id} (${that.name}).`);
       that.status = 'connected';
-      that.parent.parent.emit('connect', connection);
+      that.group.client.emit('connect', connection);
     }
 
     function handleClose(code?: number, reason?: Buffer) {

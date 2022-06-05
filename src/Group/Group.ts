@@ -9,9 +9,9 @@ import { SERVER_HEARTBEAT_TIMEOUT } from '../constants';
 type Servers = Record<number, Server>;
 
 export class Group {
+  client: Client;
   id: number;
   name: string;
-  parent: Client;
   servers: Servers;
 
   private api: Api;
@@ -20,16 +20,16 @@ export class Group {
   private subscriptions: Subscriptions;
   private userId: number;
 
-  constructor(parent: Client, group: GroupInfo, member: GroupMemberInfo) {
-    this.logger = parent.logger;
+  constructor(client: Client, group: GroupInfo, member: GroupMemberInfo) {
+    this.logger = client.logger;
 
-    this.api = parent.api;
+    this.api = client.api;
+    this.client = client;
     this.id = group.id;
     this.name = group.name ?? '';
-    this.parent = parent;
     this.permissions = this.getPermissions(group, member);
     this.servers = {};
-    this.subscriptions = parent.subscriptions;
+    this.subscriptions = client.subscriptions;
     this.userId = member.user_id;
 
     if (!this.permissions.includes('Console')) {
