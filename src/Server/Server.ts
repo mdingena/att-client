@@ -1,26 +1,39 @@
-import type { Api } from '../Api';
+import type { Api, ServerInfo } from '../Api';
 import type { Group } from '../Group';
 import type { Logger } from '../Logger';
 import { ServerConnection } from '../ServerConnection';
 
+type Player = {
+  id: number;
+  username: string;
+};
+
 export class Server {
+  description: string;
   group: Group;
   id: number;
   name: string;
+  playability: number;
+  players: Player[];
   status: 'disconnected' | 'connecting' | 'connected';
+  type: string;
 
   private api: Api;
   private connection?: ServerConnection;
   private logger: Logger;
 
-  constructor(group: Group, serverId: number) {
+  constructor(group: Group, server: ServerInfo) {
     this.logger = group.client.logger;
 
     this.api = group.client.api;
+    this.description = server.description ?? '';
     this.group = group;
-    this.id = serverId;
-    this.name = group.name;
+    this.id = server.id;
+    this.name = server.name ?? group.name ?? '';
+    this.playability = server.playability;
+    this.players = server.online_players;
     this.status = 'disconnected';
+    this.type = server.fleet;
   }
 
   /**

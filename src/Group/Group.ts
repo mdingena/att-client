@@ -6,16 +6,26 @@ import type { Subscriptions } from '../Subscriptions';
 import { Server } from '../Server';
 import { SERVER_HEARTBEAT_TIMEOUT } from '../constants';
 
+type Role = {
+  id: number;
+  name: string;
+  permissions: string[];
+};
+
+type Roles = Record<number, Role>;
+
 type Servers = Record<number, Server>;
 
 export class Group {
   client: Client;
+  description: string;
   id: number;
   name: string;
+  permissions: string[];
+  roles: Roles;
   servers: Servers;
 
   private api: Api;
-  private permissions: string[];
   private logger: Logger;
   private subscriptions: Subscriptions;
   private userId: number;
@@ -25,9 +35,11 @@ export class Group {
 
     this.api = client.api;
     this.client = client;
+    this.description = group.description ?? '';
     this.id = group.id;
     this.name = group.name ?? '';
     this.permissions = this.getPermissions(group, member);
+    this.roles = {};
     this.servers = {};
     this.subscriptions = client.subscriptions;
     this.userId = member.user_id;
@@ -61,7 +73,7 @@ export class Group {
           return;
         }
 
-        this.updatePermissions(group, member);
+        this.updateGroup(group, member);
       }),
 
       /**
@@ -80,7 +92,7 @@ export class Group {
           return;
         }
 
-        this.updatePermissions(group, member);
+        this.updateGroup(group, member);
       }),
 
       /**
@@ -155,6 +167,19 @@ export class Group {
   }
 
   /**
+   * Updates the group's details.
+   */
+  private updateGroup(group: GroupInfo, member: GroupMemberInfo) {
+    this.name = group.name ?? this.name;
+    this.description = group.description ?? this.description;
+    this.roles =
+      group.roles?.map(role => ({ id: role.role_id, name: role.name ?? '', permissions: role.permissions })) ??
+      this.roles;
+
+    this.updatePermissions(group, member);
+  }
+
+  /**
    * Updates this client's permissions for the given group with the given member info.
    */
   private updatePermissions(group: GroupInfo, member: GroupMemberInfo) {
@@ -220,7 +245,7 @@ export class Group {
   /**
    * Starts managing the given server.
    */
-  private addServer(serverId: number) {
+  private async addServer(serverId: number) {
     this.logger.debug(`Adding server ${serverId} (${this.name}).`);
 
     if (Object.keys(this.servers).map(Number).includes(serverId)) {
@@ -228,9 +253,16 @@ export class Group {
       return;
     }
 
+    const server = await this.api.getServerInfo(serverId);
+
+    if (typeof server === 'undefined') {
+      this.logger.error(`Couldn't get info for server ${serverId} (${this.description}).`);
+      return;
+    }
+
     this.servers = {
       ...this.servers,
-      [serverId]: new Server(this, serverId)
+      [serverId]: new Server(this, server)
     } as Servers;
   }
 

@@ -14,7 +14,7 @@ export type ServerInfo = {
   region: string;
   online_ping?: string; // "2022-06-01T07:53:21.612077Z"
   last_online: string; //  "2022-04-01T09:18:21.5841305Z"
-  description: string[];
+  description: string;
   playability: number;
   version: string;
   group_id: number;
