@@ -12,8 +12,6 @@ type Role = {
   permissions: string[];
 };
 
-type Roles = Record<number, Role>;
-
 type Servers = Record<number, Server>;
 
 export class Group {
@@ -22,7 +20,7 @@ export class Group {
   id: number;
   name: string;
   permissions: string[];
-  roles: Roles;
+  roles: Role[];
   servers: Servers;
 
   private api: Api;
@@ -39,7 +37,7 @@ export class Group {
     this.id = group.id;
     this.name = group.name ?? '';
     this.permissions = this.getPermissions(group, member);
-    this.roles = {};
+    this.roles = [];
     this.servers = {};
     this.subscriptions = client.subscriptions;
     this.userId = member.user_id;
