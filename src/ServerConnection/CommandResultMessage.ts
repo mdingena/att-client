@@ -9,10 +9,10 @@ type CommandParameter = {
   FullName: string;
 };
 
-export type CommandResultMessage = CommonMessage<'CommandResult'> & {
+export type CommandResultMessage<T> = CommonMessage<'CommandResult'> & {
   commandId: number;
   data: {
-    Result: string;
+    Result: T;
     ResultString: string;
     Command: {
       Parameters: CommandParameter[];

@@ -127,7 +127,7 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
    *   const commandResult = await connection.send('player message * "Bot connected to this server" 5');
    * });
    */
-  send(command: string) {
+  send<T>(command: string) {
     if (/^(websocket )?(un)?subscribe/i.test(command)) {
       this.logger.error(
         `Do not use send() to (un)subscribe to events. Please use subscribe() or unsubscribe() instead.`
@@ -135,19 +135,22 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
       return;
     }
 
-    return this.command(command);
+    return this.command<T>(command);
   }
 
   /**
    * Passes the command string to the server via console connection and registers
    * an event handler for the asynchronous response message.
    */
-  private command(command: string) {
+  private command<T>(command: string) {
     return new Promise(
-      (resolve: (message: CommandResultMessage) => void, reject: (error?: Error | CommandResultMessage) => void) => {
+      (
+        resolve: (message: CommandResultMessage<T>) => void,
+        reject: (error?: Error | CommandResultMessage<T>) => void
+      ) => {
         const id = this.getCommandId();
 
-        this.events.once(`command-${id}`, (message: CommandResultMessage) => resolve(message));
+        this.events.once(`command-${id}`, (message: CommandResultMessage<T>) => resolve(message));
 
         const message = { id, content: command };
 
