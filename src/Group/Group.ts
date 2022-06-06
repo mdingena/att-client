@@ -3,6 +3,7 @@ import type { GroupInfo, GroupMemberInfo, ServerInfo } from '../Api/schemas';
 import type { Client } from '../Client';
 import type { Logger } from '../Logger';
 import type { Subscriptions } from '../Subscriptions';
+import { TypedEmitter } from 'tiny-typed-emitter';
 import { Server } from '../Server';
 import { SERVER_HEARTBEAT_TIMEOUT } from '../constants';
 
@@ -14,7 +15,11 @@ type Role = {
 
 type Servers = Record<number, Server>;
 
-export class Group {
+interface Events {
+  update: (group: Group) => void;
+}
+
+export class Group extends TypedEmitter<Events> {
   client: Client;
   description: string;
   id: number;
@@ -29,6 +34,8 @@ export class Group {
   private userId: number;
 
   constructor(client: Client, group: GroupInfo, member: GroupMemberInfo) {
+    super();
+
     this.logger = client.logger;
 
     this.api = client.api;
@@ -167,20 +174,22 @@ export class Group {
   /**
    * Updates the group's details.
    */
-  private updateGroup(group: GroupInfo, member: GroupMemberInfo) {
+  private async updateGroup(group: GroupInfo, member: GroupMemberInfo) {
     this.name = group.name ?? this.name;
     this.description = group.description ?? this.description;
     this.roles =
       group.roles?.map(role => ({ id: role.role_id, name: role.name ?? '', permissions: role.permissions })) ??
       this.roles;
 
-    this.updatePermissions(group, member);
+    await this.updatePermissions(group, member);
+
+    this.emit('update', this);
   }
 
   /**
    * Updates this client's permissions for the given group with the given member info.
    */
-  private updatePermissions(group: GroupInfo, member: GroupMemberInfo) {
+  private async updatePermissions(group: GroupInfo, member: GroupMemberInfo) {
     const previousPermissions = [...this.permissions];
     this.permissions = this.getPermissions(group, member);
 
@@ -190,7 +199,7 @@ export class Group {
       this.logger.info(`Client lost console access to servers in group ${this.id} (${this.name}).`);
     }
 
-    this.updateServers();
+    await this.updateServers();
   }
 
   /**
@@ -208,7 +217,7 @@ export class Group {
   /**
    * Connects or disconnects a server based on its online status.
    */
-  private manageServerConnection(status: ServerInfo) {
+  private async manageServerConnection(status: ServerInfo) {
     const serverId = status.id;
     const server = this.servers[serverId];
 
@@ -223,10 +232,12 @@ export class Group {
     const isServerOnline = timeSinceLastHeartbeat < SERVER_HEARTBEAT_TIMEOUT;
 
     if (server.status === 'disconnected' && mayConnect && isServerOnline) {
-      return server.connect();
+      await server.connect();
     } else if (server.status !== 'disconnected' && (!mayConnect || !isServerOnline)) {
-      return server.disconnect();
+      server.disconnect();
     }
+
+    server.update(status);
   }
 
   /**

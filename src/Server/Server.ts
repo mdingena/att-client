@@ -1,6 +1,7 @@
 import type { Api, ServerInfo } from '../Api';
 import type { Group } from '../Group';
 import type { Logger } from '../Logger';
+import { TypedEmitter } from 'tiny-typed-emitter';
 import { ServerConnection } from '../ServerConnection';
 
 type Player = {
@@ -8,7 +9,11 @@ type Player = {
   username: string;
 };
 
-export class Server {
+interface Events {
+  update: (server: Server) => void;
+}
+
+export class Server extends TypedEmitter<Events> {
   description: string;
   group: Group;
   id: number;
@@ -23,6 +28,8 @@ export class Server {
   private logger: Logger;
 
   constructor(group: Group, server: ServerInfo) {
+    super();
+
     this.logger = group.client.logger;
 
     this.api = group.client.api;
@@ -34,6 +41,8 @@ export class Server {
     this.playability = server.playability;
     this.players = server.online_players;
     this.status = 'disconnected';
+
+    this.emit('update', this);
   }
 
   /**
@@ -104,6 +113,18 @@ export class Server {
     this.logger.debug(`Closing console connection to server ${this.id} (${this.name}).`);
     this.connection.dispose();
     delete this.connection;
+  }
+
+  /**
+   * Updates a server with new information.
+   */
+  update(status: ServerInfo) {
+    this.description = status.description;
+    this.name = status.name;
+    this.playability = status.playability;
+    this.players = status.online_players;
+
+    this.emit('update', this);
   }
 
   /**

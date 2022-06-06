@@ -211,6 +211,5 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
     this.removeAllListeners();
     this.ws.removeAllListeners();
     this.ws.close();
-    this.emit('close');
   }
 }
