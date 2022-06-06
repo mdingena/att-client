@@ -16,7 +16,7 @@ export class Server {
   playability: number;
   players: Player[];
   status: 'disconnected' | 'connecting' | 'connected';
-  type: string;
+  fleet: string;
 
   private api: Api;
   private connection?: ServerConnection;
@@ -27,13 +27,13 @@ export class Server {
 
     this.api = group.client.api;
     this.description = server.description ?? '';
+    this.fleet = server.fleet;
     this.group = group;
     this.id = server.id;
     this.name = server.name ?? group.name ?? '';
     this.playability = server.playability;
     this.players = server.online_players;
     this.status = 'disconnected';
-    this.type = server.fleet;
   }
 
   /**
