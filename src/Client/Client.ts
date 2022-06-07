@@ -4,10 +4,10 @@ import type { ServerConnection } from '../ServerConnection';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import jwtDecode from 'jwt-decode';
 import { Api, DecodedToken } from '../Api';
-import { DEFAULTS, TOKEN_URL } from '../constants';
 import { Group } from '../Group';
 import { Logger } from '../Logger';
 import { Subscriptions } from '../Subscriptions';
+import { DEFAULTS } from '../constants';
 
 interface Events {
   connect: (serverConnection: ServerConnection) => void;
@@ -75,7 +75,16 @@ export class Client extends TypedEmitter<Events> {
           : DEFAULTS.excludedGroups,
       includedGroups: config.includedGroups ?? DEFAULTS.includedGroups,
       logVerbosity: configuredLogVerbosity,
-      scope: config.scope
+      scope: config.scope,
+      restBaseUrl: config.restBaseUrl ?? DEFAULTS.restBaseUrl,
+      serverHeartbeatTimeout: config.serverHeartbeatTimeout ?? DEFAULTS.serverHeartbeatTimeout,
+      tokenUrl: config.tokenUrl ?? DEFAULTS.tokenUrl,
+      webSocketMigrationHandoverPeriod:
+        config.webSocketMigrationHandoverPeriod ?? DEFAULTS.webSocketMigrationHandoverPeriod,
+      webSocketMigrationInterval: config.webSocketMigrationInterval ?? DEFAULTS.webSocketMigrationInterval,
+      webSocketPingInterval: config.webSocketPingInterval ?? DEFAULTS.webSocketPingInterval,
+      webSocketUrl: config.webSocketUrl ?? DEFAULTS.webSocketUrl,
+      xApiKey: config.xApiKey ?? DEFAULTS.xApiKey
     };
 
     /* Initialise internals. */
@@ -229,7 +238,7 @@ export class Client extends TypedEmitter<Events> {
 
     try {
       this.logger.debug('Sending access token request.');
-      const response = await fetch(TOKEN_URL, {
+      const response = await fetch(this.config.tokenUrl, {
         method: 'POST',
         headers,
         body

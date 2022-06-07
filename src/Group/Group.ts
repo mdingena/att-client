@@ -5,7 +5,6 @@ import type { Logger } from '../Logger';
 import type { Subscriptions } from '../Subscriptions';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { Server } from '../Server';
-import { SERVER_HEARTBEAT_TIMEOUT } from '../constants';
 
 type Role = {
   id: number;
@@ -229,7 +228,7 @@ export class Group extends TypedEmitter<Events> {
     const mayConnect = this.permissions.includes('Console');
     const lastHeartbeatAt = +new Date(status.online_ping ?? '2022-06-01T00:00:00.000Z');
     const timeSinceLastHeartbeat = Date.now() - lastHeartbeatAt;
-    const isServerOnline = timeSinceLastHeartbeat < SERVER_HEARTBEAT_TIMEOUT;
+    const isServerOnline = timeSinceLastHeartbeat < this.client.config.serverHeartbeatTimeout;
 
     if (server.status === 'disconnected' && mayConnect && isServerOnline) {
       await server.connect();

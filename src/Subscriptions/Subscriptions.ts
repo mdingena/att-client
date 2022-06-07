@@ -7,18 +7,10 @@ import type { ClientResponseMessage } from './ClientResponseMessage';
 import { EventEmitter } from 'events';
 import { WebSocket } from 'ws';
 import { HttpMethod, HttpResponseCode } from '../Api';
-import {
-  WEBSOCKET_MIGRATION_HANDOVER_PERIOD,
-  WEBSOCKET_MIGRATION_INTERVAL,
-  WEBSOCKET_PING_INTERVAL,
-  WEBSOCKET_URL,
-  X_API_KEY
-} from '../constants';
 
 export class Subscriptions {
-  parent: Client;
+  client: Client;
 
-  private clientId: string;
   private events: EventEmitter;
   private logger: Logger;
   private messageId: number;
@@ -26,11 +18,10 @@ export class Subscriptions {
   private subscriptions: string[];
   private ws?: WebSocket;
 
-  constructor(parent: Client) {
-    this.clientId = parent.config.clientId;
+  constructor(client: Client) {
     this.events = new EventEmitter();
-    this.logger = parent.logger;
-    this.parent = parent;
+    this.logger = client.logger;
+    this.client = client;
     this.migration = Promise.resolve();
     this.messageId = 1;
     this.subscriptions = [];
@@ -40,12 +31,12 @@ export class Subscriptions {
    * Initialises a WebSocket connection with the Alta server.
    */
   async init() {
-    if (typeof this.parent.accessToken === 'undefined') {
+    if (typeof this.client.accessToken === 'undefined') {
       this.logger.error("Can't initialise subscriptions without an access token.");
       return;
     }
 
-    this.ws = await this.createWebSocket(this.parent.accessToken);
+    this.ws = await this.createWebSocket(this.client.accessToken);
 
     await this.registerEventHandlers(this.ws);
   }
@@ -58,16 +49,16 @@ export class Subscriptions {
 
     const headers = {
       'Content-Type': 'application/json',
-      'x-api-key': X_API_KEY,
-      'User-Agent': this.clientId,
+      'x-api-key': this.client.config.xApiKey,
+      'User-Agent': this.client.config.clientId,
       'Authorization': `Bearer ${accessToken}`
     };
     this.logger.debug('Configured WebSocket headers.', headers);
 
-    const ws = new WebSocket(WEBSOCKET_URL, { headers });
+    const ws = new WebSocket(this.client.config.webSocketUrl, { headers });
     this.logger.debug('Created new WebSocket.', ws);
 
-    setTimeout(this.migrate, WEBSOCKET_MIGRATION_INTERVAL);
+    setTimeout(this.migrate, this.client.config.webSocketMigrationInterval);
 
     return ws;
   }
@@ -137,7 +128,7 @@ export class Subscriptions {
         that.logger.debug('Registering WebSocket ping interval.');
         interval = setInterval(() => {
           that.ping(ws);
-        }, WEBSOCKET_PING_INTERVAL);
+        }, that.client.config.webSocketPingInterval);
 
         resolve();
       }
@@ -152,7 +143,7 @@ export class Subscriptions {
    */
   private ping(ws: WebSocket) {
     this.logger.debug('Pinging WebSocket.');
-    ws.ping(this.clientId);
+    ws.ping(this.client.config.clientId);
   }
 
   /**
@@ -166,7 +157,7 @@ export class Subscriptions {
       return;
     }
 
-    if (typeof this.parent.accessToken === 'undefined') {
+    if (typeof this.client.accessToken === 'undefined') {
       this.logger.error("Can't initialise subscriptions without an access token.");
       return;
     }
@@ -201,7 +192,7 @@ export class Subscriptions {
     await this.send('POST', 'migrate', { token });
     await new Promise(resolve => {
       this.logger.info(
-        `Successfully migrated WebSocket. Gracefully shutting down old WebSocket in ${WEBSOCKET_MIGRATION_HANDOVER_PERIOD} ms.`
+        `Successfully migrated WebSocket. Gracefully shutting down old WebSocket in ${this.client.config.webSocketMigrationHandoverPeriod} ms.`
       );
 
       setTimeout(() => {
@@ -209,7 +200,7 @@ export class Subscriptions {
         this.logger.info(`Closed old WebSocket.`);
 
         resolve(true);
-      }, WEBSOCKET_MIGRATION_HANDOVER_PERIOD);
+      }, this.client.config.webSocketMigrationHandoverPeriod);
     });
   }
 
@@ -231,11 +222,11 @@ export class Subscriptions {
         resolve: (message: ClientResponseMessage<`${M} /ws/${P}`>) => void,
         reject: (error?: ClientErrorMessage) => void
       ) => {
-        if (typeof this.parent.accessToken === 'undefined' || typeof this.ws === 'undefined') {
+        if (typeof this.client.accessToken === 'undefined' || typeof this.ws === 'undefined') {
           this.logger.error(
             'Subscriptions has invalid internals. Did you initialise Subscriptions with a valid access token and decoded token?'
           );
-          this.logger.debug('Subscriptions.accessToken', this.parent.accessToken);
+          this.logger.debug('Subscriptions.accessToken', this.client.accessToken);
           this.logger.debug('Subscriptions.ws', this.ws);
 
           reject(this.createErrorMessage("Can't send message on WebSocket."));
@@ -257,7 +248,7 @@ export class Subscriptions {
         const message = {
           method,
           path,
-          authorization: `Bearer ${this.parent.accessToken}`,
+          authorization: `Bearer ${this.client.accessToken}`,
           id,
           content: JSON.stringify(payload)
         };

@@ -4,37 +4,34 @@ import type { HttpMethod } from './HttpMethod';
 import type { Client } from '../Client';
 import type { Logger } from '../Logger';
 import { Endpoint } from './Endpoint';
-import { REST_BASE_URL, X_API_KEY } from '../constants';
 
 type Parameters = Record<string, string | number>;
 
 export class Api {
-  parent: Client;
+  client: Client;
 
-  private clientId: string;
   private headers?: Headers;
   private logger: Logger;
 
-  constructor(parent: Client) {
-    this.clientId = parent.config.clientId;
-    this.logger = parent.logger;
-    this.parent = parent;
+  constructor(client: Client) {
+    this.client = client;
+    this.logger = client.logger;
   }
 
   /**
    * Authorises API requests with an access token.
    */
   auth() {
-    if (typeof this.parent.accessToken === 'undefined') {
+    if (typeof this.client.accessToken === 'undefined') {
       this.logger.error("Can't authorise API requests without an access token.");
       return;
     }
 
     this.headers = new Headers({
       'Content-Type': 'application/json',
-      'x-api-key': X_API_KEY,
-      'User-Agent': this.clientId,
-      'Authorization': `Bearer ${this.parent.accessToken}`
+      'x-api-key': this.client.config.xApiKey,
+      'User-Agent': this.client.config.clientId,
+      'Authorization': `Bearer ${this.client.accessToken}`
     });
   }
 
@@ -147,7 +144,7 @@ export class Api {
   private createUrl<T extends Endpoint>(template: T, params: Partial<Parameters> = {}, query?: Parameters) {
     const endpoint = template.replace(/{(.*?)}/g, (_, match) => params[match]?.toString() ?? `{${match}}`);
 
-    const url = new URL(`${REST_BASE_URL}${endpoint}`);
+    const url = new URL(`${this.client.config.restBaseUrl}${endpoint}`);
 
     if (typeof query !== 'undefined') {
       Object.entries(query).forEach(([key, value]) => url.searchParams.append(key, value.toString()));

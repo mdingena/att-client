@@ -22,5 +22,13 @@ export interface Config {
   excludedGroups?: number[];
   includedGroups?: number[];
   logVerbosity?: Verbosity;
+  restBaseUrl?: string;
   scope: Scope[];
+  serverHeartbeatTimeout?: number;
+  tokenUrl?: string;
+  webSocketMigrationHandoverPeriod?: number;
+  webSocketMigrationInterval?: number;
+  webSocketPingInterval?: number;
+  webSocketUrl?: string;
+  xApiKey?: string;
 }
