@@ -13,7 +13,7 @@ export type {
   ServerConnectionInfo,
   ServerInfo
 } from './Api';
-export type { Config, Scope } from './Config';
+export type { Config, Scope } from './Client';
 export type { CommandResultMessage, SubscriptionEvent, SubscriptionEventMessage } from './ServerConnection';
 export { Api } from './Api';
 export { Client } from './Client';

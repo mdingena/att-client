@@ -1,4 +1,4 @@
-import type { Scope } from '../Config';
+import type { Scope } from '../Client/Config';
 
 export type DecodedToken = {
   nbf: number;

@@ -1,4 +1,4 @@
-import type { Verbosity } from './Logger';
+import type { Verbosity } from '../Logger';
 
 export type Scope =
   | 'group.info'

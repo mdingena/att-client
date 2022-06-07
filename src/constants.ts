@@ -1,4 +1,4 @@
-import type { Config } from './Config';
+import type { Config } from './Client/Config';
 import { Verbosity } from './Logger';
 
 const SECOND = 1000;

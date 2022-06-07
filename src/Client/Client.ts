@@ -1,5 +1,5 @@
 import type { GroupInfo, GroupMemberInfo } from '../Api/schemas';
-import type { Config } from '../Config';
+import type { Config } from './Config';
 import type { ServerConnection } from '../ServerConnection';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import jwtDecode from 'jwt-decode';
