@@ -131,6 +131,14 @@ export class Api {
 
     if (!response.ok) {
       this.logger.error(response.statusText);
+
+      try {
+        const body = await response.json();
+        this.logger.error(JSON.stringify(body, null, 2));
+      } catch (error) {
+        this.logger.error(error);
+      }
+
       return;
     }
 
