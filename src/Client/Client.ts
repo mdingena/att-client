@@ -188,7 +188,7 @@ export class Client extends TypedEmitter<Events> {
         await Promise.all(invites.map(async invite => this.api.acceptGroupInvite(invite.id)));
       }
     } catch (error) {
-      this.logger.error(error);
+      this.logger.error((error as Error).message);
       return;
     }
 
@@ -202,7 +202,7 @@ export class Client extends TypedEmitter<Events> {
   private async refreshTokens() {
     /* Retrieve and decode JWT. */
     this.accessToken = await this.getAccessToken();
-    this.decodedToken = this.decodeToken(this.accessToken);
+    this.decodedToken = await this.decodeToken(this.accessToken);
 
     /* Schedule JWT refresh. */
     const tokenExpiresAfter = 1000 * this.decodedToken.exp - Date.now();
@@ -257,21 +257,34 @@ export class Client extends TypedEmitter<Events> {
 
       return accessToken as string;
     } catch (error) {
-      this.logger.error('There was an error when retrieving the access token.', error);
-      throw new Error('Failed to get access token.');
+      this.logger.error('There was an error when retrieving the access token. Retrying in 10 seconds.', error);
+
+      await new Promise(resolve => setTimeout(resolve, 10000));
+
+      return await this.getAccessToken();
     }
   }
 
   /**
    * Takes an access token and decodes it to get its JWT payload.
    */
-  private decodeToken(accessToken: string): DecodedToken {
+  private async decodeToken(accessToken: string): Promise<DecodedToken> {
     this.logger.info('Decoding access token.');
 
-    const decodedToken = jwtDecode<DecodedToken>(accessToken);
-    this.logger.debug('Decoded access token.', decodedToken);
+    try {
+      const decodedToken = jwtDecode<DecodedToken>(accessToken);
+      this.logger.debug('Decoded access token.', decodedToken);
 
-    return decodedToken;
+      return decodedToken;
+    } catch (error) {
+      this.logger.error((error as Error).message);
+
+      await new Promise(resolve => setTimeout(resolve, 10000));
+
+      const accessToken = await this.getAccessToken();
+
+      return await this.decodeToken(accessToken);
+    }
   }
 
   /**
