@@ -93,6 +93,7 @@ export class Server extends TypedEmitter<Events> {
       connection.off('open', handleOpen);
       that.logger.info(`Console connection closed on server ${that.id} (${that.name}).`, code, reason?.toString());
       that.status = 'disconnected';
+      that.disconnect();
     }
 
     const connection = new ServerConnection(this, address, port, token);
