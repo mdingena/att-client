@@ -1,5 +1,21 @@
 # `Config`
 
+- [`Config.clientId`](#configclientid)
+- [`Config.clientSecret`](#configclientsecret)
+- [`Config.console`](#configconsole)
+- [`Config.excludedGroups`](#configexcludedgroups)
+- [`Config.includedGroups`](#configincludedgroups)
+- [`Config.logVerbosity`](#configlogverbosity)
+- [`Config.restBaseUrl`](#configrestbaseurl)
+- [`Config.scope`](#configscope)
+- [`Config.serverHeartbeatTimeout`](#configserverheartbeattimeout)
+- [`Config.tokenUrl`](#configtokenurl)
+- [`Config.webSocketMigrationHandoverPeriod`](#configwebsocketmigrationhandoverperiod)
+- [`Config.webSocketMigrationInterval`](#configwebsocketmigrationinterval)
+- [`Config.webSocketPingInterval`](#configwebsocketpinginterval)
+- [`Config.webSocketUrl`](#configwebsocketurl)
+- [`Config.xApiKey`](#configxapikey)
+
 The `Config` object is used to configure a [`Client`](./Client.md).
 
 ```ts
