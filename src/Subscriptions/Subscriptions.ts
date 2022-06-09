@@ -153,7 +153,8 @@ export class Subscriptions {
     await this.migration; // Prevent parallel migrations.
 
     if (typeof this.ws === 'undefined') {
-      this.logger.error('There is no WebSocket to migrate.');
+      this.logger.error('There is no WebSocket to migrate. Creating new WebSocket.');
+      await this.init();
       return;
     }
 
