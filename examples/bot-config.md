@@ -35,4 +35,4 @@ export const myBotConfig = {
 
 ## More configuration options
 
-Bots can be configured with more options, such as [restricting it to specific servers](./private-bots.md). Read about all configuration options in the documentation.
+Bots can be configured with more options, such as [restricting it to specific servers](./private-bots.md). Read about [all configuration options](../docs/Config.md) in the documentation.
