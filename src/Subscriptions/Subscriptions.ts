@@ -58,7 +58,7 @@ export class Subscriptions {
     const ws = new WebSocket(this.client.config.webSocketUrl, { headers });
     this.logger.debug('Created new WebSocket.', ws);
 
-    setTimeout(this.migrate, this.client.config.webSocketMigrationInterval);
+    setTimeout(this.migrate.bind(this), this.client.config.webSocketMigrationInterval);
 
     return ws;
   }
