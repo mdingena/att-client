@@ -158,8 +158,8 @@ export class Subscriptions {
     }
 
     if (typeof this.client.accessToken === 'undefined') {
-      this.logger.error("Can't initialise subscriptions without an access token.");
-      return;
+      this.logger.error("Can't migrate WebSocket without an access token. Ordering client to refresh tokens.");
+      await this.client.refreshTokens();
     }
 
     this.logger.info('Beginning WebSocket migration.');

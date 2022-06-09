@@ -6,6 +6,7 @@
 - [`client.config`](#clientconfig)
 - [`client.groups`](#clientgroups)
 - [`client.logger`](#clientlogger)
+- [`client.refreshTokens()`](#clientrefreshtokens)
 - [`client.start()`](#clientstart)
 - [`client.subscriptions`](#clientsubscriptions)
 - [Event: `'connect'`](#event-connect)
@@ -126,6 +127,19 @@ client.logger.error('This error message will be logged.');
 client.logger.warn('This warning message will also be logged.');
 client.logger.info('This info message will NOT be logged due to logVerbosity.');
 client.logger.debug('This debug message will NOT be logged due to logVerbosity.');
+```
+
+## `client.refreshTokens()`
+
+- Returns: `Promise<DecodedToken>`
+
+Fetches a new JWT from Alta and decodes it. Both access token and decoded token are saved internally in `Client` after calling this method. It also schedules an automatic token renewal after 90% of the token's lifespan has expired.
+
+```ts
+await client.refreshTokens();
+
+console.log(this.client.accessToken);
+// Will guaranteed log an access token.
 ```
 
 ## `client.start()`

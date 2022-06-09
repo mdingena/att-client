@@ -26,6 +26,7 @@ export class Client extends TypedEmitter<Events> {
 
   private decodedToken?: DecodedToken;
   private initialised: boolean;
+  private refreshTokensDelay?: NodeJS.Timeout;
 
   constructor(config: Config) {
     super();
@@ -199,15 +200,16 @@ export class Client extends TypedEmitter<Events> {
   /**
    * Refreshes client's access token and decoded token.
    */
-  private async refreshTokens() {
+  async refreshTokens() {
     /* Retrieve and decode JWT. */
     this.accessToken = await this.getAccessToken();
     this.decodedToken = await this.decodeToken(this.accessToken);
 
     /* Schedule JWT refresh. */
+    clearTimeout(this.refreshTokensDelay);
     const tokenExpiresAfter = 1000 * this.decodedToken.exp - Date.now();
     const tokenRefreshDelay = Math.floor(tokenExpiresAfter * 0.9);
-    setTimeout(this.refreshTokens.bind(this), tokenRefreshDelay);
+    this.refreshTokensDelay = setTimeout(this.refreshTokens.bind(this), tokenRefreshDelay);
 
     return this.decodedToken;
   }
