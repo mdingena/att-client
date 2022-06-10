@@ -16,6 +16,7 @@ export class Subscriptions {
   private messageId: number;
   private migration: Promise<void>;
   private subscriptions: string[];
+  private migrationDelay?: NodeJS.Timeout;
   private ws?: WebSocket;
 
   constructor(client: Client) {
@@ -58,7 +59,8 @@ export class Subscriptions {
     const ws = new WebSocket(this.client.config.webSocketUrl, { headers });
     this.logger.debug('Created new WebSocket.', ws);
 
-    setTimeout(this.migrate.bind(this), this.client.config.webSocketMigrationInterval);
+    clearTimeout(this.migrationDelay);
+    this.migrationDelay = setTimeout(this.migrate.bind(this), this.client.config.webSocketMigrationInterval);
 
     return ws;
   }
