@@ -15,8 +15,8 @@ export class Subscriptions {
   private logger: Logger;
   private messageId: number;
   private migration: Promise<void>;
-  private subscriptions: string[];
   private migrationDelay?: NodeJS.Timeout;
+  private subscriptions: Record<string, (message: ClientEventMessage<ClientEvent>) => void>;
   private ws?: WebSocket;
 
   constructor(client: Client) {
@@ -25,7 +25,7 @@ export class Subscriptions {
     this.client = client;
     this.migration = Promise.resolve();
     this.messageId = 1;
-    this.subscriptions = [];
+    this.subscriptions = {};
   }
 
   /**
@@ -33,7 +33,9 @@ export class Subscriptions {
    */
   async init() {
     if (typeof this.client.accessToken === 'undefined') {
-      this.logger.error("Can't initialise subscriptions without an access token.");
+      this.logger.error("Can't initialise subscriptions without an access token. Ordering client to refresh tokens.");
+      await this.client.refreshTokens();
+      await this.init();
       return;
     }
 
@@ -86,7 +88,7 @@ export class Subscriptions {
         that.logger.debug('Received WebSocket pong.', data.toString());
       }
 
-      function handleClose(this: WebSocket, code: number, reason: Buffer) {
+      async function handleClose(this: WebSocket, code: number, reason: Buffer) {
         that.logger.debug(`WebSocket is closing with code ${code}: ${reason.toString()}`);
 
         this.off('error', handleError);
@@ -94,6 +96,14 @@ export class Subscriptions {
         this.off('pong', handlePong);
 
         clearInterval(interval);
+
+        /* Migrations close WebSocket with code 3000. */
+        if (code !== 3000) {
+          that.logger.error(`WebSocket closed abnormally with code ${code}: ${reason}`);
+          that.logger.info('Restarting WebSocket and subscriptions.');
+
+          await that.recoverWebSocket();
+        }
       }
 
       function handleMessage(this: WebSocket, data: Buffer, isBinary: boolean) {
@@ -199,12 +209,30 @@ export class Subscriptions {
       );
 
       setTimeout(() => {
-        oldWs.close(1000, 'Migration completed.');
+        oldWs.close(3000, 'Migration completed.');
         this.logger.info(`Closed old WebSocket.`);
 
         resolve(true);
       }, this.client.config.webSocketMigrationHandoverPeriod);
     });
+  }
+
+  /**
+   * Recovers from an abnormally closed WebSocket connection.
+   * This class should always maintain an active WebSocket. When the WebSocket is closed abnormally, this method
+   * creates a new WebSocket and restores all subscriptions.
+   */
+  private async recoverWebSocket() {
+    this.logger.info('Recovering WebSocket connection.');
+
+    /* Create new WebSocket */
+    await this.init();
+
+    /* Resubscribe to all stored subscriptions. */
+    for (const [entry, callback] of Object.entries(this.subscriptions)) {
+      const [subscription, key] = entry.split('/') as [ClientEvent, string];
+      subscription && key && this.subscribe(subscription, key, callback);
+    }
   }
 
   /**
@@ -273,13 +301,16 @@ export class Subscriptions {
   subscribe<T extends ClientEvent>(event: T, key: string, callback: (message: ClientEventMessage<T>) => void) {
     const subscription = `${event}/${key}`;
 
-    if (this.subscriptions.includes(subscription)) {
+    if (Object.keys(this.subscriptions).includes(subscription)) {
       this.logger.error(`Already subscribed to ${subscription}.`);
       return;
     }
 
     this.logger.debug(`Subscribing to ${subscription}.`);
-    this.subscriptions = [...this.subscriptions, subscription];
+    this.subscriptions = { ...this.subscriptions, [subscription]: callback } as Record<
+      string,
+      <T>(message: ClientEventMessage<T>) => void
+    >;
     this.events.on(subscription, callback);
 
     return this.send('POST', `subscription/${subscription}`);
@@ -291,13 +322,13 @@ export class Subscriptions {
   unsubscribe<T extends ClientEvent>(event: T, key: string) {
     const subscription = `${event}/${key}`;
 
-    if (!this.subscriptions.includes(subscription)) {
+    if (!Object.keys(this.subscriptions).includes(subscription)) {
       this.logger.error(`Subscription to ${subscription} does not exist.`);
       return;
     }
 
     this.logger.debug(`Unsubscribing to ${subscription}.`);
-    this.subscriptions = this.subscriptions.filter(existing => existing !== subscription);
+    this.subscriptions = Object.fromEntries(Object.entries(this.subscriptions).filter(([key]) => key !== subscription));
     this.events.removeAllListeners(subscription);
 
     return this.send('DELETE', `subscription/${subscription}`);
