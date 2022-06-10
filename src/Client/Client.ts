@@ -114,9 +114,6 @@ export class Client extends TypedEmitter<Events> {
 
     const userId = decodedToken.client_sub;
 
-    /* Authorise API interface. */
-    this.api.auth();
-
     /* Initialise subscriptions. */
     this.logger.info('Subscribing to events.');
     await this.subscriptions.init();
@@ -204,6 +201,9 @@ export class Client extends TypedEmitter<Events> {
     /* Retrieve and decode JWT. */
     this.accessToken = await this.getAccessToken();
     this.decodedToken = await this.decodeToken(this.accessToken);
+
+    /* Reauthorise API interface. */
+    this.api.auth();
 
     /* Schedule JWT refresh. */
     clearTimeout(this.refreshTokensDelay);
