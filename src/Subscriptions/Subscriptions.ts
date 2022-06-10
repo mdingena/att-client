@@ -121,6 +121,11 @@ export class Subscriptions {
           return;
         }
 
+        if (typeof message.content === 'undefined') {
+          that.logger.error(`Received a message with ID ${message.id} but no content.`, message);
+          return;
+        }
+
         const eventName = message.id === 0 ? `${message.event}/${message.key}` : `message-${message.id}`;
         that.events.emit(eventName, {
           ...message,
