@@ -111,7 +111,7 @@ export class Server extends TypedEmitter<Events> {
   disconnect() {
     if (typeof this.connection === 'undefined') return;
 
-    this.logger.debug(`Closing console connection to server ${this.id} (${this.name}).`);
+    this.logger.info(`Closing console connection to server ${this.id} (${this.name}).`);
     this.connection.dispose();
     delete this.connection;
   }
