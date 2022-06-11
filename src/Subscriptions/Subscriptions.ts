@@ -251,8 +251,12 @@ export class Subscriptions {
     /* Create new WebSocket */
     await this.init();
 
-    /* Resubscribe to all stored subscriptions. */
-    for (const [entry, callback] of Object.entries(this.subscriptions)) {
+    /* Save all tracked subscriptions and reset tracker. */
+    const subscriptions = { ...this.subscriptions };
+    this.subscriptions = {};
+
+    /* Resubscribe to all saved subscriptions. */
+    for (const [entry, callback] of Object.entries(subscriptions)) {
       const [subscription, key] = entry.split('/') as [ClientEvent, string];
       subscription && key && this.subscribe(subscription, key, callback);
     }
