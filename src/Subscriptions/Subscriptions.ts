@@ -166,13 +166,13 @@ export class Subscriptions {
     await this.migration; // Prevent parallel migrations.
 
     if (typeof this.ws === 'undefined') {
-      this.logger.error('There is no WebSocket to migrate. Creating new WebSocket.');
+      this.logger.warn('There is no WebSocket to migrate. Creating new WebSocket.');
       await this.init();
       return;
     }
 
     if (typeof this.client.accessToken === 'undefined') {
-      this.logger.error("Can't migrate WebSocket without an access token. Ordering client to refresh tokens.");
+      this.logger.warn("Can't migrate WebSocket without an access token. Ordering client to refresh tokens.");
       await this.client.refreshTokens();
     }
 
