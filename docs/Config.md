@@ -146,7 +146,7 @@ This option configures how long a server with an idle console connection is to b
 ## `Config.tokenUrl`
 
 - `<string>` URL to JWT endpoint.
-- Defaults to `https://accounts.townshiptale.com/connect/token'`.
+- Defaults to `'https://accounts.townshiptale.com/connect/token'`.
 
 This options allows you to change where [`Client`](./Client.md) retrieves its JWT.
 
@@ -183,7 +183,7 @@ This option configured the time period between WebSocket ping requests. These pi
 ## `Config.webSocketUrl`
 
 - `<string>` URL to bot account WebSocket.
-- Defaults to `wss://5wx2mgoj95.execute-api.ap-southeast-2.amazonaws.com/dev'`.
+- Defaults to `'wss://5wx2mgoj95.execute-api.ap-southeast-2.amazonaws.com/dev'`.
 
 This options allows you to change where [`Subscriptions`](./Subscriptions.md) sends its messages.
 
