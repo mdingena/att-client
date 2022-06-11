@@ -114,17 +114,13 @@ export class Subscriptions {
         }
 
         const message = JSON.parse(data.toString());
-        that.logger.debug(`Received ${message.event} message with ID ${message.id}.`, message);
-
-        if (typeof message.id === 'undefined' && /^Internal Server Error$/i.test(message.message)) {
-          that.logger.error('Received an internal server error message.', message.message);
-          return;
-        }
 
         if (typeof message.content === 'undefined') {
           that.logger.error(`Received a message with ID ${message.id} but no content.`, message);
           return;
         }
+
+        that.logger.debug(`Received ${message.event} message with ID ${message.id}.`, message);
 
         const eventName = message.id === 0 ? `${message.event}/${message.key}` : `message-${message.id}`;
         that.events.emit(eventName, {
