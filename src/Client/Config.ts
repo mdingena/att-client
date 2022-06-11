@@ -28,6 +28,7 @@ export interface Config {
   tokenUrl?: string;
   webSocketMigrationHandoverPeriod?: number;
   webSocketMigrationInterval?: number;
+  webSocketMigrationRetryDelay?: number;
   webSocketPingInterval?: number;
   webSocketUrl?: string;
   xApiKey?: string;

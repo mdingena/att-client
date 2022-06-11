@@ -83,6 +83,7 @@ export class Client extends TypedEmitter<Events> {
       webSocketMigrationHandoverPeriod:
         config.webSocketMigrationHandoverPeriod ?? DEFAULTS.webSocketMigrationHandoverPeriod,
       webSocketMigrationInterval: config.webSocketMigrationInterval ?? DEFAULTS.webSocketMigrationInterval,
+      webSocketMigrationRetryDelay: config.webSocketMigrationRetryDelay ?? DEFAULTS.webSocketMigrationRetryDelay,
       webSocketPingInterval: config.webSocketPingInterval ?? DEFAULTS.webSocketPingInterval,
       webSocketUrl: config.webSocketUrl ?? DEFAULTS.webSocketUrl,
       xApiKey: config.xApiKey ?? DEFAULTS.xApiKey

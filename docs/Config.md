@@ -12,6 +12,7 @@
 - [`Config.tokenUrl`](#configtokenurl)
 - [`Config.webSocketMigrationHandoverPeriod`](#configwebsocketmigrationhandoverperiod)
 - [`Config.webSocketMigrationInterval`](#configwebsocketmigrationinterval)
+- [`Config.webSocketMigrationRetryDelay`](#configwebsocketmigrationretrydelay)
 - [`Config.webSocketPingInterval`](#configwebsocketpinginterval)
 - [`Config.webSocketUrl`](#configwebsocketurl)
 - [`Config.xApiKey`](#configxapikey)
@@ -164,6 +165,13 @@ This option configures how long [`Client`](./Client.md) keeps an old WebSocket o
 - Defaults to 110 minutes.
 
 This option configures the time period between WebSocket migrations. Alta use AWS WebSockets, which have a maximum lifespan of 120 minutes.
+
+## `Config.webSocketMigrationRetryDelay`
+
+- `<number>` Time in milliseconds.
+- Defaults to 10 seconds.
+
+This option configures the delay before a failed WebSocket migration is retried.
 
 ## `Config.webSocketPingInterval`
 

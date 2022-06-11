@@ -10,11 +10,11 @@ import { HttpMethod, HttpResponseCode } from '../Api';
 
 export class Subscriptions {
   client: Client;
+  migration: Promise<void>;
 
   private events: EventEmitter;
   private logger: Logger;
   private messageId: number;
-  private migration: Promise<void>;
   private migrationDelay?: NodeJS.Timeout;
   private subscriptions: Record<string, (message: ClientEventMessage<ClientEvent>) => void>;
   private ws?: WebSocket;
@@ -182,7 +182,7 @@ export class Subscriptions {
     const requestMigrateResponse = await this.send('GET', 'migrate');
 
     if (typeof requestMigrateResponse === 'undefined') {
-      this.logger.error('Client failed to migrate WebSocket.');
+      await this.retryMigration();
       return;
     }
 
@@ -190,20 +190,10 @@ export class Subscriptions {
     this.logger.debug('Received migration token.', token);
 
     const oldWs = this.ws;
-    this.migration = this.replaceWebSocket(oldWs, token);
+    this.migration = this.replaceWebSocket(token);
 
-    return this.migration;
-  }
+    await this.migration;
 
-  /**
-   * Performs the actual WebSocket migration, whereas migrate() is the public method to kick off the process and
-   * manage this class's internal state and queuing messages during the migration.
-   */
-  private async replaceWebSocket(oldWs: WebSocket, token: string) {
-    delete this.ws;
-
-    await this.init();
-    await this.send('POST', 'migrate', { token });
     await new Promise(resolve => {
       this.logger.info(
         `Successfully migrated WebSocket. Gracefully shutting down old WebSocket in ${this.client.config.webSocketMigrationHandoverPeriod} ms.`
@@ -215,6 +205,38 @@ export class Subscriptions {
 
         resolve(true);
       }, this.client.config.webSocketMigrationHandoverPeriod);
+    });
+  }
+
+  /**
+   * Performs the actual WebSocket migration, whereas migrate() is the public method to kick off the process and
+   * manage this class's internal state and queuing messages during the migration.
+   */
+  private async replaceWebSocket(token: string) {
+    try {
+      delete this.ws;
+      await this.init();
+      await this.send('POST', 'migrate', { token });
+    } catch (error) {
+      this.logger.error(error);
+      await this.retryMigration();
+      return;
+    }
+  }
+
+  /**
+   * Retries a failed WebSocket migration after a configured delay.
+   */
+  private async retryMigration() {
+    this.logger.error(
+      `Client failed to migrate WebSocket. Retrying in ${this.client.config.webSocketMigrationRetryDelay} ms.`
+    );
+
+    await new Promise(resolve => {
+      setTimeout(async () => {
+        await this.migrate();
+        resolve(true);
+      }, this.client.config.webSocketMigrationRetryDelay);
     });
   }
 
