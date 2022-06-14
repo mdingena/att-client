@@ -181,6 +181,8 @@ export class Subscriptions {
 
     this.logger.info('Beginning WebSocket migration.');
 
+    clearTimeout(this.migrationDelay);
+
     this.logger.debug('Retrieving migration token.');
     const requestMigrateResponse = await this.send('GET', 'migrate');
 
