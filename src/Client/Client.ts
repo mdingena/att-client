@@ -208,7 +208,7 @@ export class Client extends TypedEmitter<Events> {
     this.decodedToken = await this.decodeToken(this.accessToken);
 
     /* Reauthorise API interface. */
-    this.api.auth();
+    await this.api.auth();
 
     /* Schedule JWT refresh. */
     clearTimeout(this.refreshTokensDelay);
