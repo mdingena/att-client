@@ -178,7 +178,21 @@ This option configures the delay before a failed WebSocket migration is retried.
 - `<number>` Time in milliseconds.
 - Defaults to 5 minutes.
 
-This option configured the time period between WebSocket ping requests. These pings are necessary to keep the WebSocket connection open when there is no other traffic. Alta use AWS WebSockets, which close their connections after 10 minutes of inactivity.
+This option configures the time period between WebSocket ping requests. These pings are necessary to keep the WebSocket connection open when there is no other traffic. Alta use AWS WebSockets, which close their connections after 10 minutes of inactivity.
+
+## `Config.webSocketRequestAttempts`
+
+- `<number>` Amount of request attempts.
+- Defaults to 3 attempts.
+
+This option configures the number of times [`Client`](./Client.md) will attempt to send a WebSocket request.
+
+## `Config.webSocketRequestRetryDelay`
+
+- `<number>` Time in milliseconds.
+- Defaults to 2 seconds.
+
+This option configures the delay before retrying failed WebSocket requests.
 
 ## `Config.webSocketUrl`
 

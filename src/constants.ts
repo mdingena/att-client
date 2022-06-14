@@ -18,6 +18,10 @@ const WEBSOCKET_MIGRATION_RETRY_DELAY = 10 * SECOND;
 
 const WEBSOCKET_PING_INTERVAL = 5 * MINUTE;
 
+const WEBSOCKET_REQUEST_ATTEMPTS = 3;
+
+const WEBSOCKET_REQUEST_RETRY_DELAY = 2 * SECOND;
+
 const WEBSOCKET_URL = 'wss://5wx2mgoj95.execute-api.ap-southeast-2.amazonaws.com/dev';
 
 const X_API_KEY = '2l6aQGoNes8EHb94qMhqQ5m2iaiOM9666oDTPORf';
@@ -34,6 +38,8 @@ export const DEFAULTS: Required<Omit<Config, 'clientId' | 'clientSecret' | 'scop
   webSocketMigrationInterval: WEBSOCKET_MIGRATION_INTERVAL,
   webSocketMigrationRetryDelay: WEBSOCKET_MIGRATION_RETRY_DELAY,
   webSocketPingInterval: WEBSOCKET_PING_INTERVAL,
+  webSocketRequestAttempts: WEBSOCKET_REQUEST_ATTEMPTS,
+  webSocketRequestRetryDelay: WEBSOCKET_REQUEST_RETRY_DELAY,
   webSocketUrl: WEBSOCKET_URL,
   xApiKey: X_API_KEY
 };

@@ -325,7 +325,12 @@ export class Subscriptions {
   /**
    * Sends a WebSocket request and returns a Promise of the response.
    */
-  private async send<M extends HttpMethod, P extends string>(method: M, path: P, payload?: Record<string, unknown>) {
+  private async send<M extends HttpMethod, P extends string>(
+    method: M,
+    path: P,
+    payload?: Record<string, unknown>,
+    attemptsLeft = this.client.config.webSocketRequestAttempts
+  ) {
     if (path !== 'migrate') await this.migration;
 
     return new Promise(
@@ -348,9 +353,24 @@ export class Subscriptions {
         this.events.once(`message-${id}`, (message: ClientResponseMessage<`${M} /ws/${P}`> | ClientErrorMessage) => {
           if (message.responseCode === HttpResponseCode.Ok) {
             resolve(message as ClientResponseMessage<`${M} /ws/${P}`>);
+          } else if (attemptsLeft > 0) {
+            this.logger.debug(
+              `Message-${id} has a non-200 responseCode. Retrying request in ${this.client.config.webSocketRequestRetryDelay} ms.`
+            );
+
+            setTimeout(async () => {
+              try {
+                const result = await this.send(method, path, payload, attemptsLeft - 1);
+                resolve(result as ClientResponseMessage<`${M} /ws/${P}`>);
+              } catch (error) {
+                reject(error as ClientErrorMessage);
+              }
+            }, this.client.config.webSocketRequestRetryDelay);
           } else {
+            this.logger.debug(
+              `Message-${id} has a non-200 responseCode. Exhausted maximum number of request attempts.`
+            );
             reject(message as ClientErrorMessage);
-            return;
           }
         });
 
