@@ -117,6 +117,12 @@ export class Subscriptions {
 
         const message = JSON.parse(data.toString());
 
+        /* Handle messages during migration. */
+        if (typeof that.resolveMigration !== 'undefined') {
+          that.events.emit('migrate', message);
+          return;
+        }
+
         if (typeof message.content === 'undefined') {
           that.logger.error(`Received a message with ID ${message.id} but no content.`, message);
           return;
@@ -195,30 +201,26 @@ export class Subscriptions {
     const { token } = requestMigrateResponse.content;
     this.logger.debug('Received migration token.', token);
 
-    /* Create a new WebSocket instance. */
-    const newWs = await this.createWebSocket(this.client.accessToken);
-
     /* Track migration state. Will halt all outbound messages. */
     this.migration = new Promise(resolve => {
       this.resolveMigration = resolve;
     });
 
+    /* Create a new WebSocket instance. */
+    const oldWs = this.ws;
+    delete this.ws;
+    await this.init();
+
     /* Send the migration token over new WebSocket. */
     try {
-      await this.sendMigrationToken(newWs, token);
+      await this.sendMigrationToken(token);
     } catch (error) {
+      delete this.ws;
+      this.ws = oldWs;
       this.clearMigration();
       await this.retryMigration();
       return;
     }
-
-    /* Register WebSocket event handlers. */
-    await this.registerEventHandlers(newWs);
-
-    /* Switch WebSocket instances. */
-    const oldWs = this.ws;
-    delete this.ws;
-    this.ws = newWs;
 
     /* Migration completed. Resume outbound messages. */
     this.clearMigration();
@@ -246,47 +248,18 @@ export class Subscriptions {
    * Should be used on a WebSocket without any `onMessage` handlers for best results, as Alta does not always
    * respond to requests with a message ID to allow us to correlate the response to our request.
    */
-  private sendMigrationToken(ws: WebSocket, token: string) {
+  private sendMigrationToken(token: string) {
     return new Promise((resolve, reject) => {
-      const id = this.getMessageId();
-
-      this.logger.debug('Registering one-time event handler for migration message.');
-      ws.once('message', (data, isBinary) => {
-        if (isBinary) {
-          // This should never happen. There is no Alta documentation about binary data being sent through WebSockets.
-          this.logger.error('Puking horses! 🐴🐴🤮'); // https://thepetwiki.com/wiki/do_horses_vomit/
-          this.logger.debug('Received binary data on WebSocket.', data);
-          reject('Received binary data on WebSocket.');
-          return;
-        }
-
-        const message = JSON.parse(data.toString());
-
-        if (
-          message.event === 'response' &&
-          message.responseCode === 200 &&
-          message.id === id &&
-          message.key === 'POST /ws/migrate'
-        ) {
-          resolve(message.content);
+      this.events.once('migrate', message => {
+        if (message.event === 'response' && message.responseCode === 200 && message.key === 'POST /ws/migrate') {
+          return resolve(message.content);
         } else {
-          reject(message.message);
+          this.logger.error(message.message);
+          return reject();
         }
       });
 
-      const message = {
-        method: 'POST',
-        path: 'migrate',
-        authorization: `Bearer ${this.client.accessToken}`,
-        id,
-        content: JSON.stringify({ token })
-      };
-
-      this.logger.debug('Sending migration token.', message);
-      ws.send(
-        JSON.stringify(message),
-        error => typeof error !== 'undefined' && reject(this.createErrorMessage(error.message))
-      );
+      this.send('POST', 'migrate', { token });
     });
   }
 
