@@ -89,14 +89,10 @@ export class Api {
   /**
    * Sends a GET request to Alta's REST API.
    */
-  private get<T extends Endpoint>(
-    endpoint: T,
-    params?: Parameters,
-    query?: Parameters
-  ): Promise<undefined | ApiResponse<`GET ${T}`>['body']> {
+  private get<T extends Endpoint>(endpoint: T, params?: Parameters, query?: Parameters) {
     const url = this.createUrl(endpoint, params, query);
 
-    return this.request('GET', url);
+    return this.request('GET', url) as Promise<undefined | ApiResponse<`GET ${T}`>['body']>;
   }
 
   /**
@@ -107,19 +103,20 @@ export class Api {
     params?: Partial<Parameters>,
     query?: Parameters,
     payload?: ApiRequest
-  ): Promise<undefined | ApiResponse<`POST ${T}`>['body']> {
+  ) {
     const url = this.createUrl(endpoint, params, query);
 
-    return this.request('POST', url, payload);
+    return this.request('POST', url, payload) as Promise<undefined | ApiResponse<`POST ${T}`>['body']>;
   }
 
   /**
    * Constructs a request to send to Alta's REST API.
    */
-  private async request(method: HttpMethod, url: URL, payload?: ApiRequest) {
+  private async request(method: HttpMethod, url: URL, payload?: ApiRequest): Promise<unknown> {
     if (typeof this.headers === 'undefined') {
-      this.logger.error('API is not initialised.');
-      return;
+      this.logger.error('API is not authorised. Ordering authorisation now.');
+      await this.auth();
+      return await this.request(method, url, payload);
     }
 
     this.logger.debug(`Requesting ${method} ${url}`, payload);
@@ -131,7 +128,7 @@ export class Api {
     });
 
     if (!response.ok) {
-      this.logger.error(response.statusText);
+      this.logger.error(`${method} ${url} ${payload} responded with ${response.status} ${response.statusText}.`);
 
       try {
         const body = await response.json();
