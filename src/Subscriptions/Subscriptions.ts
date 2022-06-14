@@ -110,7 +110,8 @@ export class Subscriptions {
         if (isBinary) {
           // This should never happen. There is no Alta documentation about binary data being sent through WebSockets.
           that.logger.error('Puking horses! 🐴🐴🤮'); // https://thepetwiki.com/wiki/do_horses_vomit/
-          return that.logger.debug('Received binary data on WebSocket.', data);
+          that.logger.debug('Received binary data on WebSocket.', data);
+          return;
         }
 
         const message = JSON.parse(data.toString());
