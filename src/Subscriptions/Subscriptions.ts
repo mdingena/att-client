@@ -16,6 +16,7 @@ export class Subscriptions {
   private logger: Logger;
   private messageId: number;
   private migrationDelay?: NodeJS.Timeout;
+  private resolveMigration?: (value: void | PromiseLike<void>) => void;
   private subscriptions: Record<string, (message: ClientEventMessage<ClientEvent>) => void>;
   private ws?: WebSocket;
 
@@ -246,6 +247,14 @@ export class Subscriptions {
   }
 
   /**
+   * Clears any pending migration Promise, unblocking queued messages waiting for a WebSocket instance.
+   */
+  private clearMigration() {
+    this.resolveMigration?.();
+    delete this.resolveMigration;
+  }
+
+  /**
    * Recovers from an abnormally closed WebSocket connection.
    * This class should always maintain an active WebSocket. When the WebSocket is closed abnormally, this method
    * creates a new WebSocket and restores all subscriptions.
@@ -255,6 +264,9 @@ export class Subscriptions {
 
     /* Create new WebSocket */
     await this.init();
+
+    /* Unblock all backed-up messages. */
+    this.clearMigration();
 
     /* Save all tracked subscriptions and reset tracker. */
     const subscriptions = { ...this.subscriptions };
