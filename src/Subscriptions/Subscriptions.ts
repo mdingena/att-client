@@ -361,10 +361,8 @@ export class Subscriptions {
         reject: (error?: ClientErrorMessage) => void
       ) => {
         if (typeof this.client.accessToken === 'undefined' || typeof this.ws === 'undefined') {
-          this.logger.error(
-            'Subscriptions has invalid internals. Did you initialise Subscriptions with a valid access token and decoded token?'
-          );
-          this.logger.debug('Subscriptions.accessToken', this.client.accessToken);
+          this.logger.error('Cannot send WebSocket messages. Please verify that Client was initialised properly.');
+          this.logger.debug('Client.accessToken', this.client.accessToken);
           this.logger.debug('Subscriptions.ws', this.ws);
 
           reject(this.createErrorMessage("Can't send message on WebSocket."));
