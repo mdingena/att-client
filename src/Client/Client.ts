@@ -142,19 +142,20 @@ export class Client extends TypedEmitter<Events> {
            * group permissions.
            */
           const groupId = message.content.id;
+          const groupName = message.content.name;
 
-          this.logger.info(`Client was added to group ${groupId}.`);
+          this.logger.info(`Client was added to group ${groupId} (${groupName}).`);
 
           const group = await this.api.getGroupInfo(groupId);
           const member = await this.api.getGroupMember(groupId, userId);
 
           if (typeof group === 'undefined') {
-            this.logger.error(`Couldn't get info for group ${groupId}`);
+            this.logger.error(`Couldn't get info for group ${groupId} (${groupName}).`);
             return;
           }
 
           if (typeof member === 'undefined') {
-            this.logger.error(`Couldn't find group member info for group ${group.id}`);
+            this.logger.error(`Couldn't find group member info for group ${group.id} (${groupName}).`);
             return;
           }
 
@@ -165,8 +166,9 @@ export class Client extends TypedEmitter<Events> {
         /* Subscribe to and handle server group left message. */
         this.subscriptions.subscribe('me-group-delete', userId, message => {
           const groupId = message.content.group.id;
+          const groupName = message.content.group.name;
 
-          this.logger.info(`Client was removed from group ${groupId}.`);
+          this.logger.info(`Client was removed from group ${groupId} (${groupName}).`);
           this.removeGroup(groupId);
         })
       ]);
@@ -307,16 +309,16 @@ export class Client extends TypedEmitter<Events> {
    * Starts managing a group and its servers.
    */
   private addGroup(group: GroupInfo, member: GroupMemberInfo) {
-    this.logger.debug(`Adding group ${group.id}.`);
+    this.logger.debug(`Adding group ${group.id} (${group.name}).`);
 
     if (Object.keys(this.groups).map(Number).includes(group.id)) {
-      this.logger.error(`Can't add group ${group.id} more than once.`);
+      this.logger.error(`Can't add group ${group.id} (${group.name}) more than once.`);
       return;
     }
 
     if (!this.isAllowedGroup(group.id)) {
       this.logger.warn(
-        `Client is a member of group ${group.id} which is either not configured as an included group, or is configured as an excluded group.`
+        `Client is a member of group ${group.id} (${group.name}) which is either not configured as an included group, or is configured as an excluded group.`
       );
       return;
     }
