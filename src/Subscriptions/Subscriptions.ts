@@ -195,11 +195,35 @@ export class Subscriptions {
     const { token } = requestMigrateResponse.content;
     this.logger.debug('Received migration token.', token);
 
+    /* Create a new WebSocket instance. */
+    const newWs = await this.createWebSocket(this.client.accessToken);
+
+    /* Track migration state. Will halt all outbound messages. */
+    this.migration = new Promise(resolve => {
+      this.resolveMigration = resolve;
+    });
+
+    /* Send the migration token over new WebSocket. */
+    try {
+      await this.sendMigrationToken(newWs, token);
+    } catch (error) {
+      this.clearMigration();
+      await this.retryMigration();
+      return;
+    }
+
+    /* Register WebSocket event handlers. */
+    await this.registerEventHandlers(newWs);
+
+    /* Switch WebSocket instances. */
     const oldWs = this.ws;
-    this.migration = this.replaceWebSocket(token);
+    delete this.ws;
+    this.ws = newWs;
 
-    await this.migration;
+    /* Migration completed. Resume outbound messages. */
+    this.clearMigration();
 
+    /* Gracefully discard old WebSocket instance. */
     await new Promise(resolve => {
       this.logger.info(
         `Successfully migrated WebSocket. Gracefully shutting down old WebSocket in ${this.client.config.webSocketMigrationHandoverPeriod} ms.`
@@ -215,19 +239,55 @@ export class Subscriptions {
   }
 
   /**
-   * Performs the actual WebSocket migration, whereas migrate() is the public method to kick off the process and
-   * manage this class's internal state and queuing messages during the migration.
+   * Sends a migration token over a given WebSocket instance and promises to handle its response.
+   * Resolves when Alta responds with a successful migration message.
+   * Rejects on all other cases.
+   *
+   * Should be used on a WebSocket without any `onMessage` handlers for best results, as Alta does not always
+   * respond to requests with a message ID to allow us to correlate the response to our request.
    */
-  private async replaceWebSocket(token: string) {
-    try {
-      delete this.ws;
-      await this.init();
-      await this.send('POST', 'migrate', { token });
-    } catch (error) {
-      this.logger.error(error);
-      await this.retryMigration();
-      return;
-    }
+  private sendMigrationToken(ws: WebSocket, token: string) {
+    return new Promise((resolve, reject) => {
+      const id = this.getMessageId();
+
+      this.logger.debug('Registering one-time event handler for migration message.');
+      ws.once('message', (data, isBinary) => {
+        if (isBinary) {
+          // This should never happen. There is no Alta documentation about binary data being sent through WebSockets.
+          this.logger.error('Puking horses! 🐴🐴🤮'); // https://thepetwiki.com/wiki/do_horses_vomit/
+          this.logger.debug('Received binary data on WebSocket.', data);
+          reject('Received binary data on WebSocket.');
+          return;
+        }
+
+        const message = JSON.parse(data.toString());
+
+        if (
+          message.event === 'response' &&
+          message.responseCode === 200 &&
+          message.id === id &&
+          message.key === 'POST /ws/migrate'
+        ) {
+          resolve(message.content);
+        } else {
+          reject(message.message);
+        }
+      });
+
+      const message = {
+        method: 'POST',
+        path: 'migrate',
+        authorization: `Bearer ${this.client.accessToken}`,
+        id,
+        content: JSON.stringify({ token })
+      };
+
+      this.logger.debug('Sending migration token.', message);
+      ws.send(
+        JSON.stringify(message),
+        error => typeof error !== 'undefined' && reject(this.createErrorMessage(error.message))
+      );
+    });
   }
 
   /**
@@ -250,8 +310,11 @@ export class Subscriptions {
    * Clears any pending migration Promise, unblocking queued messages waiting for a WebSocket instance.
    */
   private clearMigration() {
-    this.resolveMigration?.();
-    delete this.resolveMigration;
+    if (typeof this.resolveMigration !== 'undefined') {
+      this.logger.debug('Resolving migration Promise.');
+      this.resolveMigration();
+      delete this.resolveMigration;
+    }
   }
 
   /**
