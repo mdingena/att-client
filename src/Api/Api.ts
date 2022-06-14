@@ -87,7 +87,7 @@ export class Api {
   }
 
   /**
-   * Sends a GET request to Alta's API.
+   * Sends a GET request to Alta's REST API.
    */
   private get<T extends Endpoint>(
     endpoint: T,
@@ -100,7 +100,7 @@ export class Api {
   }
 
   /**
-   * Sends a POST request to Alta's API.
+   * Sends a POST request to Alta's REST API.
    */
   private post<T extends Endpoint>(
     endpoint: T,
@@ -114,7 +114,7 @@ export class Api {
   }
 
   /**
-   * Constructs a request to send to Alta's API.
+   * Constructs a request to send to Alta's REST API.
    */
   private async request(method: HttpMethod, url: URL, payload?: ApiRequest) {
     if (typeof this.headers === 'undefined') {
