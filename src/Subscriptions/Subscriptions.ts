@@ -175,6 +175,8 @@ export class Subscriptions {
     if (typeof this.client.accessToken === 'undefined') {
       this.logger.warn("Can't migrate WebSocket without an access token. Ordering client to refresh tokens.");
       await this.client.refreshTokens();
+      await this.migrate();
+      return;
     }
 
     this.logger.info('Beginning WebSocket migration.');
