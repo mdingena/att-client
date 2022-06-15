@@ -15,6 +15,8 @@
 - [`Config.webSocketMigrationRetryDelay`](#configwebsocketmigrationretrydelay)
 - [`Config.webSocketPingInterval`](#configwebsocketpinginterval)
 - [`Config.webSocketRecoveryRetryDelay`](#configwebsocketrecoveryretrydelay)
+- [`Config.webSocketRequestAttempts`](#configwebsocketrequestattempts)
+- [`Config.webSocketRequestRetryDelay`](#configwebsocketrequestretrydelay)
 - [`Config.webSocketUrl`](#configwebsocketurl)
 - [`Config.xApiKey`](#configxapikey)
 
@@ -34,8 +36,11 @@ interface Config {
   tokenUrl?: string;
   webSocketMigrationHandoverPeriod?: number;
   webSocketMigrationInterval?: number;
+  webSocketMigrationRetryDelay?: number;
   webSocketPingInterval?: number;
   webSocketRecoveryRetryDelay?: number;
+  webSocketRequestAttempts?: number;
+  webSocketRequestRetryDelay?: number;
   webSocketUrl?: string;
   xApiKey?: string;
 }
