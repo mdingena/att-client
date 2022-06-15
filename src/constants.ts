@@ -22,7 +22,7 @@ const WEBSOCKET_RECOVERY_RETRY_DELAY = 5 * SECOND;
 
 const WEBSOCKET_REQUEST_ATTEMPTS = 3;
 
-const WEBSOCKET_REQUEST_RETRY_DELAY = 2 * SECOND;
+const WEBSOCKET_REQUEST_RETRY_DELAY = 3 * SECOND;
 
 const WEBSOCKET_URL = 'wss://5wx2mgoj95.execute-api.ap-southeast-2.amazonaws.com/dev';
 

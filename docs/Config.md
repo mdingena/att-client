@@ -199,7 +199,7 @@ This option configures the number of times [`Client`](./Client.md) will attempt 
 ## `Config.webSocketRequestRetryDelay`
 
 - `<number>` Time in milliseconds.
-- Defaults to 2 seconds.
+- Defaults to 3 seconds.
 
 This option configures the delay before retrying failed WebSocket requests.
 
