@@ -160,7 +160,7 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
 
         const message = { id, content: command };
 
-        this.logger.debug(`Sending command to ${this.server.id} (${this.server.name}).`, message);
+        this.logger.debug(`Sending command-${id} to ${this.server.id} (${this.server.name}).`, message);
         this.ws.send(JSON.stringify(message), error => typeof error !== 'undefined' && reject(error));
       }
     );
