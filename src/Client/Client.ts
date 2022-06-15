@@ -85,6 +85,7 @@ export class Client extends TypedEmitter<Events> {
       webSocketMigrationInterval: config.webSocketMigrationInterval ?? DEFAULTS.webSocketMigrationInterval,
       webSocketMigrationRetryDelay: config.webSocketMigrationRetryDelay ?? DEFAULTS.webSocketMigrationRetryDelay,
       webSocketPingInterval: config.webSocketPingInterval ?? DEFAULTS.webSocketPingInterval,
+      webSocketRecoveryRetryDelay: config.webSocketRecoveryRetryDelay ?? DEFAULTS.webSocketRecoveryRetryDelay,
       webSocketRequestAttempts: config.webSocketRequestAttempts ?? DEFAULTS.webSocketRequestAttempts,
       webSocketRequestRetryDelay: config.webSocketRequestRetryDelay ?? DEFAULTS.webSocketRequestRetryDelay,
       webSocketUrl: config.webSocketUrl ?? DEFAULTS.webSocketUrl,

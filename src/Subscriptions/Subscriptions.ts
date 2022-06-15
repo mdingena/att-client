@@ -10,7 +10,7 @@ import { HttpMethod, HttpResponseCode } from '../Api';
 
 export class Subscriptions {
   client: Client;
-  migration: Promise<void>;
+  halted: Promise<void>;
 
   private events: EventEmitter;
   private logger: Logger;
@@ -24,7 +24,7 @@ export class Subscriptions {
     this.events = new EventEmitter();
     this.logger = client.logger;
     this.client = client;
-    this.migration = Promise.resolve();
+    this.halted = Promise.resolve();
     this.messageId = 1;
     this.subscriptions = {};
   }
@@ -98,8 +98,8 @@ export class Subscriptions {
 
         clearInterval(interval);
 
-        /* Migrations close WebSocket with code 3000. */
-        if (code !== 3000) {
+        /* Migrations close WebSocket with code 3000 or 3001. */
+        if (code !== 3000 && code !== 3001) {
           that.logger.error(`WebSocket closed abnormally with code ${code}: ${reason}`);
           that.logger.info('Restarting WebSocket and subscriptions.');
 
@@ -148,7 +148,7 @@ export class Subscriptions {
 
         that.logger.debug('Registering WebSocket ping interval.');
         interval = setInterval(() => {
-          that.ping(ws);
+          that.ping(this);
         }, that.client.config.webSocketPingInterval);
 
         resolve();
@@ -171,7 +171,7 @@ export class Subscriptions {
    * Migrates the WebSocket. Instructs the Alta server to migrate all existing subscriptions to a new connection.
    */
   async migrate() {
-    await this.migration; // Prevent parallel migrations.
+    await this.halted;
 
     if (typeof this.ws === 'undefined') {
       this.logger.warn('There is no WebSocket to migrate. Creating new WebSocket.');
@@ -202,19 +202,22 @@ export class Subscriptions {
     this.logger.debug('Received migration token.', token);
 
     /* Track migration state. Will halt all outbound messages. */
-    this.migration = new Promise(resolve => {
+    this.halted = new Promise(resolve => {
       this.resolveMigration = resolve;
     });
 
     /* Create a new WebSocket instance. */
     const oldWs = this.ws;
     delete this.ws;
-    await this.init();
+    this.ws = await this.createWebSocket(this.client.accessToken);
+    await this.registerEventHandlers(this.ws);
 
     /* Send the migration token over new WebSocket. */
     try {
       await this.sendMigrationToken(token);
     } catch (error) {
+      this.ws.removeAllListeners();
+      this.ws.close(3001, 'Migration aborted.');
       delete this.ws;
       this.ws = oldWs;
       this.clearMigration();
@@ -226,18 +229,14 @@ export class Subscriptions {
     this.clearMigration();
 
     /* Gracefully discard old WebSocket instance. */
-    await new Promise(resolve => {
-      this.logger.info(
-        `Successfully migrated WebSocket. Gracefully shutting down old WebSocket in ${this.client.config.webSocketMigrationHandoverPeriod} ms.`
-      );
+    this.logger.info(
+      `Successfully migrated WebSocket. Gracefully shutting down old WebSocket in ${this.client.config.webSocketMigrationHandoverPeriod} ms.`
+    );
 
-      setTimeout(() => {
-        oldWs.close(3000, 'Migration completed.');
-        this.logger.info(`Closed old WebSocket.`);
+    await new Promise(resolve => setTimeout(resolve, this.client.config.webSocketMigrationHandoverPeriod));
 
-        resolve(true);
-      }, this.client.config.webSocketMigrationHandoverPeriod);
-    });
+    oldWs.close(3000, 'Migration completed.');
+    this.logger.info(`Closed old WebSocket.`);
   }
 
   /**
@@ -252,10 +251,13 @@ export class Subscriptions {
     return new Promise((resolve, reject) => {
       this.events.once('migrate', message => {
         if (message.event === 'response' && message.responseCode === 200 && message.key === 'POST /ws/migrate') {
-          return resolve(message.content);
+          resolve(message.content);
         } else {
-          this.logger.error(message.message);
-          return reject();
+          this.logger.error(
+            'Something went wrong posting the WebSocket migration token. Received message:',
+            JSON.stringify(message, null, 2)
+          );
+          reject();
         }
       });
 
@@ -271,12 +273,9 @@ export class Subscriptions {
       `Client failed to migrate WebSocket. Retrying in ${this.client.config.webSocketMigrationRetryDelay} ms.`
     );
 
-    await new Promise(resolve => {
-      setTimeout(async () => {
-        await this.migrate();
-        resolve(true);
-      }, this.client.config.webSocketMigrationRetryDelay);
-    });
+    await new Promise(resolve => setTimeout(resolve, this.client.config.webSocketMigrationRetryDelay));
+
+    await this.migrate();
   }
 
   /**
@@ -296,10 +295,24 @@ export class Subscriptions {
    * creates a new WebSocket and restores all subscriptions.
    */
   private async recoverWebSocket() {
+    if (typeof this.client.accessToken === 'undefined') {
+      this.logger.warn("Can't migrate WebSocket without an access token. Ordering client to refresh tokens.");
+      await this.client.refreshTokens();
+      await this.recoverWebSocket();
+      return;
+    }
+
     this.logger.info('Recovering WebSocket connection.');
 
+    /* Track recovery state. Will halt all outbound messages. */
+    this.halted = new Promise(resolve => {
+      this.resolveMigration = resolve;
+    });
+
     /* Create new WebSocket */
-    await this.init();
+    delete this.ws;
+    this.ws = await this.createWebSocket(this.client.accessToken);
+    await this.registerEventHandlers(this.ws);
 
     /* Unblock all backed-up messages. */
     this.clearMigration();
@@ -309,9 +322,32 @@ export class Subscriptions {
     this.subscriptions = {};
 
     /* Resubscribe to all saved subscriptions. */
-    for (const [entry, callback] of Object.entries(subscriptions)) {
-      const [subscription, key] = entry.split('/') as [ClientEvent, string];
-      subscription && key && this.subscribe(subscription, key, callback);
+    const resubscriptions = await Promise.allSettled(
+      Object.entries(subscriptions).map(([entry, callback]) => {
+        const [subscription, key] = entry.split('/') as [ClientEvent, string];
+
+        if (typeof subscription !== 'string' || typeof key !== 'string') return;
+
+        this.events.removeAllListeners(entry);
+        return this.subscribe(subscription, key, callback);
+      })
+    );
+
+    /* Verify resubscriptions. */
+    if (resubscriptions.some(resub => resub.status === 'rejected')) {
+      /* WebSocket recovery has failed. */
+      this.halted = new Promise(resolve => {
+        this.resolveMigration = resolve;
+      });
+
+      this.logger.error(
+        `WebSocket recovery failed! Retrying recovery in ${this.client.config.webSocketRecoveryRetryDelay} ms.`
+      );
+
+      await new Promise(resolve => setTimeout(resolve, this.client.config.webSocketRecoveryRetryDelay));
+
+      this.clearMigration();
+      await this.recoverWebSocket();
     }
   }
 
@@ -331,7 +367,7 @@ export class Subscriptions {
     payload?: Record<string, unknown>,
     attemptsLeft = this.client.config.webSocketRequestAttempts
   ) {
-    if (path !== 'migrate') await this.migration;
+    if (path !== 'migrate') await this.halted;
 
     return new Promise(
       (

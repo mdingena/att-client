@@ -14,6 +14,7 @@
 - [`Config.webSocketMigrationInterval`](#configwebsocketmigrationinterval)
 - [`Config.webSocketMigrationRetryDelay`](#configwebsocketmigrationretrydelay)
 - [`Config.webSocketPingInterval`](#configwebsocketpinginterval)
+- [`Config.webSocketRecoveryRetryDelay`](#configwebsocketrecoveryretrydelay)
 - [`Config.webSocketUrl`](#configwebsocketurl)
 - [`Config.xApiKey`](#configxapikey)
 
@@ -34,6 +35,7 @@ interface Config {
   webSocketMigrationHandoverPeriod?: number;
   webSocketMigrationInterval?: number;
   webSocketPingInterval?: number;
+  webSocketRecoveryRetryDelay?: number;
   webSocketUrl?: string;
   xApiKey?: string;
 }
@@ -179,6 +181,13 @@ This option configures the delay before a failed WebSocket migration is retried.
 - Defaults to 5 minutes.
 
 This option configures the time period between WebSocket ping requests. These pings are necessary to keep the WebSocket connection open when there is no other traffic. Alta use AWS WebSockets, which close their connections after 10 minutes of inactivity.
+
+## `Config.webSocketRecoveryRetryDelay`
+
+- `<number>` Time in milliseconds.
+- Defaults to 5 seconds.
+
+This option configures the delay before retrying failed WebSocket recovery.
 
 ## `Config.webSocketRequestAttempts`
 

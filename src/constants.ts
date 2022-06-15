@@ -18,6 +18,8 @@ const WEBSOCKET_MIGRATION_RETRY_DELAY = 10 * SECOND;
 
 const WEBSOCKET_PING_INTERVAL = 5 * MINUTE;
 
+const WEBSOCKET_RECOVERY_RETRY_DELAY = 5 * SECOND;
+
 const WEBSOCKET_REQUEST_ATTEMPTS = 3;
 
 const WEBSOCKET_REQUEST_RETRY_DELAY = 2 * SECOND;
@@ -38,6 +40,7 @@ export const DEFAULTS: Required<Omit<Config, 'clientId' | 'clientSecret' | 'scop
   webSocketMigrationInterval: WEBSOCKET_MIGRATION_INTERVAL,
   webSocketMigrationRetryDelay: WEBSOCKET_MIGRATION_RETRY_DELAY,
   webSocketPingInterval: WEBSOCKET_PING_INTERVAL,
+  webSocketRecoveryRetryDelay: WEBSOCKET_RECOVERY_RETRY_DELAY,
   webSocketRequestAttempts: WEBSOCKET_REQUEST_ATTEMPTS,
   webSocketRequestRetryDelay: WEBSOCKET_REQUEST_RETRY_DELAY,
   webSocketUrl: WEBSOCKET_URL,

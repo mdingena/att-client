@@ -30,6 +30,7 @@ export interface Config {
   webSocketMigrationInterval?: number;
   webSocketMigrationRetryDelay?: number;
   webSocketPingInterval?: number;
+  webSocketRecoveryRetryDelay?: number;
   webSocketRequestAttempts?: number;
   webSocketRequestRetryDelay?: number;
   webSocketUrl?: string;
