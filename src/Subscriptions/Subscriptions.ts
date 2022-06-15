@@ -295,6 +295,8 @@ export class Subscriptions {
    * creates a new WebSocket and restores all subscriptions.
    */
   private async recoverWebSocket() {
+    await this.halted;
+
     if (typeof this.client.accessToken === 'undefined') {
       this.logger.warn("Can't migrate WebSocket without an access token. Ordering client to refresh tokens.");
       await this.client.refreshTokens();
