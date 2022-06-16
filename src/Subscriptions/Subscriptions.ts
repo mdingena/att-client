@@ -16,6 +16,7 @@ export class Subscriptions {
   private logger: Logger;
   private messageId: number;
   private migrationDelay?: NodeJS.Timeout;
+  private pingInterval?: NodeJS.Timer;
   private resolveMigration?: (value: void | PromiseLike<void>) => void;
   private subscriptions: Record<string, (message: ClientEventMessage<ClientEvent>) => void>;
   private ws?: WebSocket;
@@ -74,7 +75,6 @@ export class Subscriptions {
   private registerEventHandlers(ws: WebSocket): Promise<void> {
     return new Promise(resolve => {
       const that = this;
-      let interval: NodeJS.Timer;
 
       function handleError(this: WebSocket, error: Error) {
         that.logger.error('An error occurred on the WebSocket.', error);
@@ -96,7 +96,7 @@ export class Subscriptions {
         this.off('ping', handlePing);
         this.off('pong', handlePong);
 
-        clearInterval(interval);
+        clearInterval(that.pingInterval);
 
         /* Migrations close WebSocket with code 3000 or 3001. */
         if (code !== 3000 && code !== 3001) {
@@ -147,7 +147,8 @@ export class Subscriptions {
         this.on('message', handleMessage);
 
         that.logger.debug('Registering WebSocket ping interval.');
-        interval = setInterval(() => {
+        clearInterval(that.pingInterval);
+        that.pingInterval = setInterval(() => {
           that.ping(this);
         }, that.client.config.webSocketPingInterval);
 
