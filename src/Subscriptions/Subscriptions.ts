@@ -8,6 +8,8 @@ import { EventEmitter } from 'events';
 import { WebSocket } from 'ws';
 import { HttpMethod, HttpResponseCode } from '../Api';
 
+type SubscribeResult = void | ClientResponseMessage<`POST /ws/subscription/${ClientEvent}`>;
+
 export class Subscriptions {
   client: Client;
   halted: Promise<void>;
@@ -333,27 +335,42 @@ export class Subscriptions {
     this.subscriptions = {};
 
     /* Resubscribe to all saved subscriptions. */
-    const resubscriptions = await Promise.allSettled(
-      Object.entries(subscriptions).map(([entry, callback]) => {
-        const [subscription, key] = entry.split('/') as [ClientEvent, string];
+    try {
+      const resubscriptions = await Promise.race<PromiseSettledResult<SubscribeResult>[]>([
+        Promise.allSettled<Promise<SubscribeResult>[]>(
+          Object.entries(subscriptions).map(([entry, callback]) => {
+            const [subscription, key] = entry.split('/') as [ClientEvent, string];
 
-        if (typeof subscription !== 'string' || typeof key !== 'string') return;
+            if (typeof subscription !== 'string' || typeof key !== 'string') return Promise.resolve();
 
-        this.events.removeAllListeners(entry);
-        return this.subscribe(subscription, key, callback);
-      })
-    );
+            this.events.removeAllListeners(entry);
+            return this.subscribe(subscription, key, callback) ?? Promise.reject();
+          })
+        ),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => {
+            reject(
+              new Error(
+                `WebSocket recovery failed! Resubscribing was unsuccessful within ${this.client.config.resubscriptionTimeout} ms. Retrying recovery in ${this.client.config.webSocketRecoveryRetryDelay} ms.`
+              )
+            );
+          }, this.client.config.resubscriptionTimeout)
+        )
+      ]);
 
-    /* Verify resubscriptions. */
-    if (resubscriptions.some(resub => resub.status === 'rejected')) {
+      /* Verify resubscriptions. */
+      if (resubscriptions.some(resub => resub.status === 'rejected')) {
+        throw new Error(
+          `WebSocket recovery failed! Some resubscriptions were unsuccessful. Retrying recovery in ${this.client.config.webSocketRecoveryRetryDelay} ms.`
+        );
+      }
+    } catch (error) {
       /* WebSocket recovery has failed. */
       this.halted = new Promise(resolve => {
         this.resolveMigration = resolve;
       });
 
-      this.logger.error(
-        `WebSocket recovery failed! Retrying recovery in ${this.client.config.webSocketRecoveryRetryDelay} ms.`
-      );
+      this.logger.error((error as Error).message);
 
       await new Promise(resolve => setTimeout(resolve, this.client.config.webSocketRecoveryRetryDelay));
 

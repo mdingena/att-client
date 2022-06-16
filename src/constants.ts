@@ -4,6 +4,8 @@ import { Verbosity } from './Logger';
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 
+const RESUBSCRIPTION_TIMEOUT = 2 * MINUTE;
+
 const REST_BASE_URL = 'https://967phuchye.execute-api.ap-southeast-2.amazonaws.com/prod/api';
 
 const SERVER_HEARTBEAT_TIMEOUT = 10 * MINUTE;
@@ -33,6 +35,7 @@ export const DEFAULTS: Required<Omit<Config, 'clientId' | 'clientSecret' | 'scop
   excludedGroups: [],
   includedGroups: [],
   logVerbosity: Verbosity.Warning,
+  resubscriptionTimeout: RESUBSCRIPTION_TIMEOUT,
   restBaseUrl: REST_BASE_URL,
   serverHeartbeatTimeout: SERVER_HEARTBEAT_TIMEOUT,
   tokenUrl: TOKEN_URL,

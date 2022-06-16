@@ -6,6 +6,7 @@
 - [`Config.excludedGroups`](#configexcludedgroups)
 - [`Config.includedGroups`](#configincludedgroups)
 - [`Config.logVerbosity`](#configlogverbosity)
+- [`Config.resubscriptionTimeout`](#configresubscriptiontimeout)
 - [`Config.restBaseUrl`](#configrestbaseurl)
 - [`Config.scope`](#configscope)
 - [`Config.serverHeartbeatTimeout`](#configserverheartbeattimeout)
@@ -30,6 +31,7 @@ interface Config {
   excludedGroups?: number[];
   includedGroups?: number[];
   logVerbosity?: Verbosity;
+  resubscriptionTimeout?: number;
   restBaseUrl?: string;
   scope: Scope[];
   serverHeartbeatTimeout?: number;
@@ -109,6 +111,13 @@ enum Verbosity {
 This option changes logging behaviour. The higher `logVerbosity`, the more verbose logging becomes.
 
 :warning: `Debug` verbosity is not recommended for regular operation.
+
+## `Config.resubscriptionTimeout`
+
+- `<number>` Time in milliseconds.
+- Defaults to 2 minutes.
+
+This option configures how long resubscribing to WebSocket subscriptions is allowed to take. When this timeout expires, a new WebSocket will be created.
 
 ## `Config.restBaseUrl`
 

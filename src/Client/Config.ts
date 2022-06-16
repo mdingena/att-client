@@ -22,6 +22,7 @@ export interface Config {
   excludedGroups?: number[];
   includedGroups?: number[];
   logVerbosity?: Verbosity;
+  resubscriptionTimeout?: number;
   restBaseUrl?: string;
   scope: Scope[];
   serverHeartbeatTimeout?: number;

@@ -77,6 +77,7 @@ export class Client extends TypedEmitter<Events> {
       includedGroups: config.includedGroups ?? DEFAULTS.includedGroups,
       logVerbosity: configuredLogVerbosity,
       scope: config.scope,
+      resubscriptionTimeout: config.resubscriptionTimeout ?? DEFAULTS.resubscriptionTimeout,
       restBaseUrl: config.restBaseUrl ?? DEFAULTS.restBaseUrl,
       serverHeartbeatTimeout: config.serverHeartbeatTimeout ?? DEFAULTS.serverHeartbeatTimeout,
       tokenUrl: config.tokenUrl ?? DEFAULTS.tokenUrl,
