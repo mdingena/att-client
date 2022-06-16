@@ -171,7 +171,7 @@ export class Subscriptions {
   /**
    * Migrates the WebSocket. Instructs the Alta server to migrate all existing subscriptions to a new connection.
    */
-  async migrate() {
+  async migrate(migrationToken?: string) {
     await this.halted;
 
     if (typeof this.ws === 'undefined') {
@@ -191,16 +191,23 @@ export class Subscriptions {
 
     clearTimeout(this.migrationDelay);
 
-    this.logger.debug('Retrieving migration token.');
-    const requestMigrateResponse = await this.send('GET', 'migrate');
+    let token: string;
 
-    if (typeof requestMigrateResponse === 'undefined') {
-      await this.retryMigration();
-      return;
+    if (typeof migrationToken === 'undefined') {
+      this.logger.debug('Retrieving migration token.');
+      const requestMigrateResponse = await this.send('GET', 'migrate');
+
+      if (typeof requestMigrateResponse === 'undefined') {
+        await this.retryMigration();
+        return;
+      }
+
+      token = requestMigrateResponse.content.token;
+      this.logger.debug('Received migration token.', token);
+    } else {
+      token = migrationToken;
+      this.logger.debug('Reusing migration token.', token);
     }
-
-    const { token } = requestMigrateResponse.content;
-    this.logger.debug('Received migration token.', token);
 
     /* Track migration state. Will halt all outbound messages. */
     this.halted = new Promise(resolve => {
@@ -217,12 +224,13 @@ export class Subscriptions {
     try {
       await this.sendMigrationToken(token);
     } catch (error) {
+      clearInterval(this.pingInterval);
       this.ws.removeAllListeners();
       this.ws.close(3001, 'Migration aborted.');
       delete this.ws;
       this.ws = oldWs;
       this.clearMigration();
-      await this.retryMigration();
+      await this.retryMigration(token);
       return;
     }
 
@@ -269,14 +277,14 @@ export class Subscriptions {
   /**
    * Retries a failed WebSocket migration after a configured delay.
    */
-  private async retryMigration() {
+  private async retryMigration(migrationToken?: string) {
     this.logger.error(
       `Client failed to migrate WebSocket. Retrying in ${this.client.config.webSocketMigrationRetryDelay} ms.`
     );
 
     await new Promise(resolve => setTimeout(resolve, this.client.config.webSocketMigrationRetryDelay));
 
-    await this.migrate();
+    await this.migrate(migrationToken);
   }
 
   /**
