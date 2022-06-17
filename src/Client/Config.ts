@@ -22,7 +22,6 @@ export interface Config {
   excludedGroups?: number[];
   includedGroups?: number[];
   logVerbosity?: Verbosity;
-  resubscriptionTimeout?: number;
   restBaseUrl?: string;
   scope: Scope[];
   serverHeartbeatTimeout?: number;
@@ -32,6 +31,7 @@ export interface Config {
   webSocketMigrationRetryDelay?: number;
   webSocketPingInterval?: number;
   webSocketRecoveryRetryDelay?: number;
+  webSocketRecoveryTimeout?: number;
   webSocketRequestAttempts?: number;
   webSocketRequestRetryDelay?: number;
   webSocketUrl?: string;

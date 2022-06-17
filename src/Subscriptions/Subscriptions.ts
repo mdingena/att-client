@@ -352,10 +352,10 @@ export class Subscriptions {
           setTimeout(() => {
             reject(
               new Error(
-                `WebSocket recovery failed! Resubscribing was unsuccessful within ${this.client.config.resubscriptionTimeout} ms. Retrying recovery in ${this.client.config.webSocketRecoveryRetryDelay} ms.`
+                `WebSocket recovery failed! Resubscribing was unsuccessful within ${this.client.config.webSocketRecoveryTimeout} ms. Retrying recovery in ${this.client.config.webSocketRecoveryRetryDelay} ms.`
               )
             );
-          }, this.client.config.resubscriptionTimeout)
+          }, this.client.config.webSocketRecoveryTimeout)
         )
       ]);
 

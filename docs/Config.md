@@ -6,7 +6,6 @@
 - [`Config.excludedGroups`](#configexcludedgroups)
 - [`Config.includedGroups`](#configincludedgroups)
 - [`Config.logVerbosity`](#configlogverbosity)
-- [`Config.resubscriptionTimeout`](#configresubscriptiontimeout)
 - [`Config.restBaseUrl`](#configrestbaseurl)
 - [`Config.scope`](#configscope)
 - [`Config.serverHeartbeatTimeout`](#configserverheartbeattimeout)
@@ -16,6 +15,7 @@
 - [`Config.webSocketMigrationRetryDelay`](#configwebsocketmigrationretrydelay)
 - [`Config.webSocketPingInterval`](#configwebsocketpinginterval)
 - [`Config.webSocketRecoveryRetryDelay`](#configwebsocketrecoveryretrydelay)
+- [`Config.webSocketRecoveryTimeout`](#configwebsocketrecoverytimeout)
 - [`Config.webSocketRequestAttempts`](#configwebsocketrequestattempts)
 - [`Config.webSocketRequestRetryDelay`](#configwebsocketrequestretrydelay)
 - [`Config.webSocketUrl`](#configwebsocketurl)
@@ -112,13 +112,6 @@ This option changes logging behaviour. The higher `logVerbosity`, the more verbo
 
 :warning: `Debug` verbosity is not recommended for regular operation.
 
-## `Config.resubscriptionTimeout`
-
-- `<number>` Time in milliseconds.
-- Defaults to 2 minutes.
-
-This option configures how long resubscribing to WebSocket subscriptions is allowed to take. When this timeout expires, a new WebSocket will be created.
-
 ## `Config.restBaseUrl`
 
 - `<string>` Base URL of the REST API.
@@ -202,6 +195,13 @@ This option configures the time period between WebSocket ping requests. These pi
 - Defaults to 5 seconds.
 
 This option configures the delay before retrying failed WebSocket recovery.
+
+## `Config.webSocketRecoveryTimeout`
+
+- `<number>` Time in milliseconds.
+- Defaults to 2 minutes.
+
+This option configures how long recovering WebSocket subscriptions is allowed to take. When this timeout expires, a new WebSocket will be created.
 
 ## `Config.webSocketRequestAttempts`
 

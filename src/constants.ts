@@ -4,8 +4,6 @@ import { Verbosity } from './Logger';
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 
-const RESUBSCRIPTION_TIMEOUT = 2 * MINUTE;
-
 const REST_BASE_URL = 'https://967phuchye.execute-api.ap-southeast-2.amazonaws.com/prod/api';
 
 const SERVER_HEARTBEAT_TIMEOUT = 10 * MINUTE;
@@ -22,6 +20,8 @@ const WEBSOCKET_PING_INTERVAL = 5 * MINUTE;
 
 const WEBSOCKET_RECOVERY_RETRY_DELAY = 5 * SECOND;
 
+const WEBSOCKET_RECOVERY_TIMEOUT = 2 * MINUTE;
+
 const WEBSOCKET_REQUEST_ATTEMPTS = 3;
 
 const WEBSOCKET_REQUEST_RETRY_DELAY = 3 * SECOND;
@@ -35,7 +35,6 @@ export const DEFAULTS: Required<Omit<Config, 'clientId' | 'clientSecret' | 'scop
   excludedGroups: [],
   includedGroups: [],
   logVerbosity: Verbosity.Warning,
-  resubscriptionTimeout: RESUBSCRIPTION_TIMEOUT,
   restBaseUrl: REST_BASE_URL,
   serverHeartbeatTimeout: SERVER_HEARTBEAT_TIMEOUT,
   tokenUrl: TOKEN_URL,
@@ -44,6 +43,7 @@ export const DEFAULTS: Required<Omit<Config, 'clientId' | 'clientSecret' | 'scop
   webSocketMigrationRetryDelay: WEBSOCKET_MIGRATION_RETRY_DELAY,
   webSocketPingInterval: WEBSOCKET_PING_INTERVAL,
   webSocketRecoveryRetryDelay: WEBSOCKET_RECOVERY_RETRY_DELAY,
+  webSocketRecoveryTimeout: WEBSOCKET_RECOVERY_TIMEOUT,
   webSocketRequestAttempts: WEBSOCKET_REQUEST_ATTEMPTS,
   webSocketRequestRetryDelay: WEBSOCKET_REQUEST_RETRY_DELAY,
   webSocketUrl: WEBSOCKET_URL,
