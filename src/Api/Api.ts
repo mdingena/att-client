@@ -119,7 +119,7 @@ export class Api {
       return await this.request(method, url, payload);
     }
 
-    this.logger.debug(`Requesting ${method} ${url}`, payload);
+    this.logger.debug(`Requesting ${method} ${url}`, JSON.stringify(payload));
 
     const response = await fetch(url.toString(), {
       method,
@@ -132,7 +132,7 @@ export class Api {
 
       try {
         const body = await response.json();
-        this.logger.error(JSON.stringify(body, null, 2));
+        this.logger.error(JSON.stringify(body));
       } catch (error) {
         this.logger.error(error);
       }

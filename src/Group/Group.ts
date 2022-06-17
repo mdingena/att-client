@@ -51,7 +51,7 @@ export class Group extends TypedEmitter<Events> {
     if (!this.permissions.includes('Console')) {
       this.logger.warn(
         `This client does not have 'Console' permissions for group ${this.id} (${this.name}).`,
-        this.permissions
+        JSON.stringify(this.permissions)
       );
     }
 
@@ -106,7 +106,7 @@ export class Group extends TypedEmitter<Events> {
       this.subscriptions.subscribe('group-server-status', this.id.toString(), async message => {
         const status = message.content;
 
-        this.logger.debug(`Status updated for server ${status.id} (${status.name}).`, status);
+        this.logger.debug(`Status updated for server ${status.id} (${status.name}).`, JSON.stringify(status));
         this.manageServerConnection(status);
       }),
 
@@ -120,7 +120,10 @@ export class Group extends TypedEmitter<Events> {
        */
       this.subscriptions.subscribe('group-server-create', this.id.toString(), _unstableMessage => {
         /* ⚠️ This code is untested because I can't create new servers. */
-        this.logger.warn('Client is running untested group-server-create code in Group.ts.', _unstableMessage);
+        this.logger.warn(
+          'Client is running untested group-server-create code in Group.ts.',
+          JSON.stringify(_unstableMessage)
+        );
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         const serverId = _unstableMessage.content.id as number;
@@ -137,7 +140,10 @@ export class Group extends TypedEmitter<Events> {
        */
       this.subscriptions.subscribe('group-server-delete', this.id.toString(), _unstableMessage => {
         /* ⚠️ This code is untested because I can't delete servers. */
-        this.logger.warn('Client is running untested group-server-delete code in Group.ts.', _unstableMessage);
+        this.logger.warn(
+          'Client is running untested group-server-delete code in Group.ts.',
+          JSON.stringify(_unstableMessage)
+        );
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         const serverId = _unstableMessage.content.id as number;

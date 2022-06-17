@@ -60,10 +60,10 @@ export class Subscriptions {
       'User-Agent': this.client.config.clientId,
       'Authorization': `Bearer ${accessToken}`
     };
-    this.logger.debug('Configured WebSocket headers.', headers);
+    this.logger.debug('Configured WebSocket headers.', JSON.stringify(headers));
 
     const ws = new WebSocket(this.client.config.webSocketUrl, { headers });
-    this.logger.debug('Created new WebSocket.', ws);
+    this.logger.debug('Created new WebSocket.');
 
     clearTimeout(this.migrationDelay);
     this.migrationDelay = setTimeout(this.migrate.bind(this), this.client.config.webSocketMigrationInterval);
@@ -79,7 +79,7 @@ export class Subscriptions {
       const that = this;
 
       function handleError(this: WebSocket, error: Error) {
-        that.logger.error('An error occurred on the WebSocket.', error);
+        that.logger.error('An error occurred on the WebSocket.', error.message);
       }
 
       function handlePing(this: WebSocket, data: Buffer) {
@@ -113,7 +113,7 @@ export class Subscriptions {
         if (isBinary) {
           // This should never happen. There is no Alta documentation about binary data being sent through WebSockets.
           that.logger.error('Puking horses! 🐴🐴🤮'); // https://thepetwiki.com/wiki/do_horses_vomit/
-          that.logger.debug('Received binary data on WebSocket.', data);
+          that.logger.debug('Received binary data on WebSocket.', data.toString());
           return;
         }
 
@@ -126,11 +126,11 @@ export class Subscriptions {
         }
 
         if (typeof message.content === 'undefined') {
-          that.logger.error(`Received a message with ID ${message.id} but no content.`, message);
+          that.logger.error(`Received a message with ID ${message.id} but no content.`, JSON.stringify(message));
           return;
         }
 
-        that.logger.debug(`Received ${message.event} message with ID ${message.id}.`, message);
+        that.logger.debug(`Received ${message.event} message with ID ${message.id}.`, JSON.stringify(message));
 
         const eventName = message.id === 0 ? `${message.event}/${message.key}` : `message-${message.id}`;
         that.events.emit(eventName, {
@@ -267,7 +267,7 @@ export class Subscriptions {
         } else {
           this.logger.error(
             'Something went wrong posting the WebSocket migration token. Received message:',
-            JSON.stringify(message, null, 2)
+            JSON.stringify(message)
           );
           reject();
         }
@@ -405,8 +405,6 @@ export class Subscriptions {
       ) => {
         if (typeof this.client.accessToken === 'undefined' || typeof this.ws === 'undefined') {
           this.logger.error('Cannot send WebSocket messages. Please verify that Client was initialised properly.');
-          this.logger.debug('Client.accessToken', this.client.accessToken);
-          this.logger.debug('Subscriptions.ws', this.ws);
 
           reject(this.createErrorMessage("Can't send message on WebSocket."));
           return;
@@ -439,22 +437,19 @@ export class Subscriptions {
           }
         });
 
-        const message = {
+        const message = JSON.stringify({
           method,
           path,
           authorization: `Bearer ${this.client.accessToken}`,
           id,
           content: JSON.stringify(payload)
-        };
+        });
 
         this.logger.debug('Sending message.', message);
-        this.ws.send(
-          JSON.stringify(message),
-          error => typeof error !== 'undefined' && reject(this.createErrorMessage(error.message))
-        );
+        this.ws.send(message, error => typeof error !== 'undefined' && reject(this.createErrorMessage(error.message)));
       }
     ).catch((message: ClientErrorMessage) => {
-      this.logger.error('Error:', message.content.message);
+      this.logger.error('Subscriptions.send() error:', message.content.message);
     });
   }
 

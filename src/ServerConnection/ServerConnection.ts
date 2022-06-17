@@ -34,7 +34,7 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
     const that = this;
 
     function handleError(this: WebSocket, error: Error) {
-      that.logger.error(`An error occurred on console ${that.server.id} (${that.server.name}).`, error);
+      that.logger.error(`An error occurred on console ${that.server.id} (${that.server.name}).`, error.message);
 
       that.emit('error', error);
     }
@@ -64,7 +64,7 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
       if (isBinary) {
         // This should never happen. There is no Alta documentation about binary data being sent through WebSockets.
         that.logger.error('Puking horses! 🐴🐴🤮'); // https://thepetwiki.com/wiki/do_horses_vomit/
-        that.logger.debug(`Received binary data on console ${that.server.id} (${that.server.name}).`, data);
+        that.logger.debug(`Received binary data on console ${that.server.id} (${that.server.name}):`, data.toString());
         return;
       }
 
@@ -77,7 +77,7 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
 
       that.logger.debug(
         `Console ${that.server.id} (${that.server.name}) received ${eventName} message.`,
-        JSON.stringify(message, null, 2)
+        JSON.stringify(message)
       );
 
       if (
@@ -104,7 +104,10 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
 
       this.send(token, error => {
         if (typeof error !== 'undefined') {
-          that.logger.error(`Couldn't authenticate console ${that.server.id} (${that.server.name}) connection.`, error);
+          that.logger.error(
+            `Couldn't authenticate console ${that.server.id} (${that.server.name}) connection.`,
+            error.message
+          );
           return;
         }
 
@@ -158,10 +161,10 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
 
         this.events.once(`command-${id}`, (message: CommandResultMessage<T>) => resolve(message));
 
-        const message = { id, content: command };
+        const message = JSON.stringify({ id, content: command });
 
         this.logger.debug(`Sending command-${id} to ${this.server.id} (${this.server.name}).`, message);
-        this.ws.send(JSON.stringify(message), error => typeof error !== 'undefined' && reject(error));
+        this.ws.send(message, error => typeof error !== 'undefined' && reject(error));
       }
     );
   }

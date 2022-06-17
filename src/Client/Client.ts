@@ -243,7 +243,7 @@ export class Client extends TypedEmitter<Events> {
       'Content-Length': bodyString.length.toString(),
       'User-Agent': this.config.clientId
     };
-    this.logger.debug('Configured access token request headers.', headers);
+    this.logger.debug('Configured access token request headers.', JSON.stringify(headers));
 
     try {
       this.logger.debug('Sending access token request.');
@@ -254,7 +254,7 @@ export class Client extends TypedEmitter<Events> {
       });
 
       const data = await response.json();
-      this.logger.debug('Retrieving access token data.', data);
+      this.logger.debug('Retrieving access token data.', JSON.stringify(data));
 
       if (!response.ok) {
         const error = (data && data.message) || response.status;
@@ -266,7 +266,10 @@ export class Client extends TypedEmitter<Events> {
 
       return accessToken as string;
     } catch (error) {
-      this.logger.error('There was an error when retrieving the access token. Retrying in 10 seconds.', error);
+      this.logger.error(
+        'There was an error when retrieving the access token. Retrying in 10 seconds.',
+        (error as Error).message
+      );
 
       await new Promise(resolve => setTimeout(resolve, 10000));
 
@@ -282,7 +285,7 @@ export class Client extends TypedEmitter<Events> {
 
     try {
       const decodedToken = jwtDecode<DecodedToken>(accessToken);
-      this.logger.debug('Decoded access token.', decodedToken);
+      this.logger.debug('Decoded access token.', JSON.stringify(decodedToken));
 
       return decodedToken;
     } catch (error) {

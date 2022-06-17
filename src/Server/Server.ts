@@ -61,7 +61,10 @@ export class Server extends TypedEmitter<Events> {
       return;
     }
 
-    this.logger.debug(`Got connection details for server ${this.id} (${this.name}).`, connectionDetails);
+    this.logger.debug(
+      `Got connection details for server ${this.id} (${this.name}).`,
+      JSON.stringify(connectionDetails)
+    );
 
     const {
       allowed,
@@ -80,7 +83,7 @@ export class Server extends TypedEmitter<Events> {
     const that = this;
 
     function handleError(error: Error) {
-      that.logger.error(`Error on console connection on server ${that.id} (${that.name}).`, error);
+      that.logger.error(`Error on console connection on server ${that.id} (${that.name}).`, error.message);
     }
 
     function handleOpen() {
