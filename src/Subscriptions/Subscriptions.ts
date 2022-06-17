@@ -247,6 +247,7 @@ export class Subscriptions {
     await new Promise(resolve => setTimeout(resolve, this.client.config.webSocketMigrationHandoverPeriod));
 
     oldWs.close(3000, 'Migration completed.');
+    oldWs.removeAllListeners();
     this.logger.info(`Closed old WebSocket.`);
   }
 
