@@ -19,7 +19,7 @@ export class Subscriptions {
   private messageId: number;
   private migrationDelay?: NodeJS.Timeout;
   private pingInterval?: NodeJS.Timer;
-  private resolveMigration?: (value: void | PromiseLike<void>) => void;
+  private resolveHalted?: (value: void | PromiseLike<void>) => void;
   private subscriptions: Record<string, (message: ClientEventMessage<ClientEvent>) => void>;
   private ws?: WebSocket;
 
@@ -120,7 +120,7 @@ export class Subscriptions {
         const message = JSON.parse(data.toString());
 
         /* Handle messages during migration. */
-        if (typeof that.resolveMigration !== 'undefined') {
+        if (typeof that.resolveHalted !== 'undefined') {
           that.events.emit('migrate', message);
           return;
         }
@@ -213,7 +213,7 @@ export class Subscriptions {
 
     /* Track migration state. Will halt all outbound messages. */
     this.halted = new Promise(resolve => {
-      this.resolveMigration = resolve;
+      this.resolveHalted = resolve;
     });
 
     /* Create a new WebSocket instance. */
@@ -231,13 +231,18 @@ export class Subscriptions {
       this.ws.close(3001, 'Migration aborted.');
       delete this.ws;
       this.ws = oldWs;
-      this.clearMigration();
-      await this.retryMigration(token);
+      /**
+       * 2022-06-17 v0.2.21
+       * This used to be `this.retryMigration(token)` but migration still fails server-side and cannot be recovered without also resubscribing
+       * all subscriptions. This is what `this.recoverWebSocket()` handles.
+       * Additionally, we removed the `this.clearHalted()` call so that queued outbound messages remain blocked until recovery has succeeded.
+       */
+      await this.recoverWebSocket();
       return;
     }
 
     /* Migration completed. Resume outbound messages. */
-    this.clearMigration();
+    this.clearHalted();
 
     /* Gracefully discard old WebSocket instance. */
     this.logger.info(
@@ -291,13 +296,13 @@ export class Subscriptions {
   }
 
   /**
-   * Clears any pending migration Promise, unblocking queued messages waiting for a WebSocket instance.
+   * Clears any pending halted Promise, unblocking queued messages waiting for a WebSocket instance.
    */
-  private clearMigration() {
-    if (typeof this.resolveMigration !== 'undefined') {
-      this.logger.debug('Resolving migration Promise.');
-      this.resolveMigration();
-      delete this.resolveMigration;
+  private clearHalted() {
+    if (typeof this.resolveHalted !== 'undefined') {
+      this.logger.debug('Resolving halted Promise.');
+      this.resolveHalted();
+      delete this.resolveHalted;
     }
   }
 
@@ -307,8 +312,6 @@ export class Subscriptions {
    * creates a new WebSocket and restores all subscriptions.
    */
   private async recoverWebSocket() {
-    await this.halted;
-
     if (typeof this.client.accessToken === 'undefined') {
       this.logger.warn("Can't migrate WebSocket without an access token. Ordering client to refresh tokens.");
       await this.client.refreshTokens();
@@ -319,17 +322,21 @@ export class Subscriptions {
     this.logger.info('Recovering WebSocket connection.');
 
     /* Track recovery state. Will halt all outbound messages. */
-    this.halted = new Promise(resolve => {
-      this.resolveMigration = resolve;
-    });
+    if (typeof this.resolveHalted === 'undefined') {
+      this.halted = new Promise(resolve => {
+        this.resolveHalted = resolve;
+      });
+    }
 
     /* Create new WebSocket */
+    clearInterval(this.pingInterval);
+    this.ws?.removeAllListeners();
     delete this.ws;
     this.ws = await this.createWebSocket(this.client.accessToken);
     await this.registerEventHandlers(this.ws);
 
     /* Unblock all backed-up messages. */
-    this.clearMigration();
+    this.clearHalted();
 
     /* Save all tracked subscriptions and reset tracker. */
     const subscriptions = { ...this.subscriptions };
@@ -337,15 +344,22 @@ export class Subscriptions {
 
     /* Resubscribe to all saved subscriptions. */
     try {
-      const resubscriptions = await Promise.race<PromiseSettledResult<SubscribeResult>[]>([
-        Promise.allSettled<Promise<SubscribeResult>[]>(
+      await Promise.race<SubscribeResult[]>([
+        Promise.all<Promise<SubscribeResult>[]>(
           Object.entries(subscriptions).map(([entry, callback]) => {
             const [subscription, key] = entry.split('/') as [ClientEvent, string];
 
             if (typeof subscription !== 'string' || typeof key !== 'string') return Promise.resolve();
 
             this.events.removeAllListeners(entry);
-            return this.subscribe(subscription, key, callback) ?? Promise.reject();
+            return (
+              this.subscribe(subscription, key, callback) ??
+              Promise.reject(
+                new Error(
+                  `WebSocket recovery failed! Resubscribing to ${entry} was unsuccessful. Retrying recovery in ${this.client.config.webSocketRecoveryRetryDelay} ms.`
+                )
+              )
+            );
           })
         ),
         new Promise<never>((_, reject) =>
@@ -358,24 +372,19 @@ export class Subscriptions {
           }, this.client.config.webSocketRecoveryTimeout)
         )
       ]);
-
-      /* Verify resubscriptions. */
-      if (resubscriptions.some(resub => resub.status === 'rejected')) {
-        throw new Error(
-          `WebSocket recovery failed! Some resubscriptions were unsuccessful. Retrying recovery in ${this.client.config.webSocketRecoveryRetryDelay} ms.`
-        );
-      }
     } catch (error) {
       /* WebSocket recovery has failed. */
       this.halted = new Promise(resolve => {
-        this.resolveMigration = resolve;
+        this.resolveHalted = resolve;
       });
 
       this.logger.error((error as Error).message);
 
       await new Promise(resolve => setTimeout(resolve, this.client.config.webSocketRecoveryRetryDelay));
 
-      this.clearMigration();
+      /* Restore original tracked subscriptions before retrying WebSocket recovery. */
+      this.subscriptions = subscriptions;
+
       await this.recoverWebSocket();
     }
   }
