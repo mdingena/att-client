@@ -8,6 +8,7 @@
 - [`Config.logVerbosity`](#configlogverbosity)
 - [`Config.restBaseUrl`](#configrestbaseurl)
 - [`Config.scope`](#configscope)
+- [`Config.serverConnectionRecoveryDelay`](#configserverconnectionrecoverydelay)
 - [`Config.serverHeartbeatTimeout`](#configserverheartbeattimeout)
 - [`Config.tokenUrl`](#configtokenurl)
 - [`Config.webSocketMigrationHandoverPeriod`](#configwebsocketmigrationhandoverperiod)
@@ -34,6 +35,7 @@ interface Config {
   resubscriptionTimeout?: number;
   restBaseUrl?: string;
   scope: Scope[];
+  serverConnectionRecoveryDelay?: number;
   serverHeartbeatTimeout?: number;
   tokenUrl?: string;
   webSocketMigrationHandoverPeriod?: number;
@@ -151,6 +153,13 @@ This option sets your [`Client`](./Client.md)'s scope. This option should match 
 - Defaults to 10 minutes.
 
 This option configures how long a server with an idle console connection is to be considered "online". When this timeout expires, the console connection will be closed.
+
+## `Config.serverConnectionRecoveryDelay`
+
+- `<number>` Time in milliseconds.
+- Defaults to 10 seconds.
+
+This option configures how long to wait after a server console connection closed unexpectedly before recovering the connection.
 
 ## `Config.tokenUrl`
 

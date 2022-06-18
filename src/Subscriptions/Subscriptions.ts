@@ -62,7 +62,21 @@ export class Subscriptions {
     };
     this.logger.debug('Configured WebSocket headers.', JSON.stringify(headers));
 
-    const ws = new WebSocket(this.client.config.webSocketUrl, { headers });
+    let ws: WebSocket;
+
+    try {
+      ws = new WebSocket(this.client.config.webSocketUrl, { headers });
+    } catch (error) {
+      this.logger.error(
+        `Something went wrong opening WebSocket to Alta. Retrying in ${
+          this.client.config.webSocketRecoveryRetryDelay
+        } ms. Error was: ${(error as Error).message}`
+      );
+
+      await new Promise(resolve => setTimeout(resolve, this.client.config.webSocketRecoveryRetryDelay));
+      return await this.createWebSocket(accessToken);
+    }
+
     this.logger.debug('Created new WebSocket.');
 
     clearTimeout(this.migrationDelay);

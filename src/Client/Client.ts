@@ -78,6 +78,7 @@ export class Client extends TypedEmitter<Events> {
       logVerbosity: configuredLogVerbosity,
       scope: config.scope,
       restBaseUrl: config.restBaseUrl ?? DEFAULTS.restBaseUrl,
+      serverConnectionRecoveryDelay: config.serverConnectionRecoveryDelay ?? DEFAULTS.serverConnectionRecoveryDelay,
       serverHeartbeatTimeout: config.serverHeartbeatTimeout ?? DEFAULTS.serverHeartbeatTimeout,
       tokenUrl: config.tokenUrl ?? DEFAULTS.tokenUrl,
       webSocketMigrationHandoverPeriod:

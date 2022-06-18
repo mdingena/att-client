@@ -81,6 +81,7 @@ export class Server extends TypedEmitter<Events> {
 
     this.status = 'connecting';
     const that = this;
+    let connection: ServerConnection;
 
     function handleError(error: Error) {
       that.logger.error(`Error on console connection on server ${that.id} (${that.name}).`, error.message);
@@ -104,13 +105,27 @@ export class Server extends TypedEmitter<Events> {
       }
     }
 
-    const connection = new ServerConnection(this, address, port, token);
+    try {
+      connection = new ServerConnection(this, address, port, token);
 
-    connection.on('error', handleError);
-    connection.once('close', handleClose);
-    connection.once('open', handleOpen);
+      connection.on('error', handleError);
+      connection.once('close', handleClose);
+      connection.once('open', handleOpen);
 
-    this.connection = connection;
+      this.connection = connection;
+    } catch (error) {
+      delete this.connection;
+      this.status = 'disconnected';
+
+      this.logger.error(
+        `Something went wrong opening a console connection to server ${this.name}. Retrying in ${
+          this.group.client.config.serverConnectionRecoveryDelay
+        } ms. Error was: ${(error as Error).message}`
+      );
+
+      await new Promise(resolve => setTimeout(resolve, this.group.client.config.serverConnectionRecoveryDelay));
+      await this.connect();
+    }
   }
 
   /**
@@ -130,7 +145,11 @@ export class Server extends TypedEmitter<Events> {
 
     this.disconnect();
 
-    this.logger.info(`Reopening console connection to server ${this.id} (${this.name}).`);
+    this.logger.info(
+      `Reopening console connection to server ${this.id} (${this.name}) in ${this.group.client.config.serverConnectionRecoveryDelay} ms.`
+    );
+
+    await new Promise(resolve => setTimeout(resolve, this.group.client.config.serverConnectionRecoveryDelay));
     await this.connect();
   }
 

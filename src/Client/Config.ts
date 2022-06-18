@@ -24,6 +24,7 @@ export interface Config {
   logVerbosity?: Verbosity;
   restBaseUrl?: string;
   scope: Scope[];
+  serverConnectionRecoveryDelay?: number;
   serverHeartbeatTimeout?: number;
   tokenUrl?: string;
   webSocketMigrationHandoverPeriod?: number;
