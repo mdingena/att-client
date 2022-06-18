@@ -270,7 +270,7 @@ export class Group extends TypedEmitter<Events> {
     const server = await this.api.getServerInfo(serverId);
 
     if (typeof server === 'undefined') {
-      this.logger.error(`Couldn't get info for server ${serverId} (${this.description}).`);
+      this.logger.error(`Couldn't get info for server ${serverId} (${this.name}).`);
       return;
     }
 
