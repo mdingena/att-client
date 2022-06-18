@@ -386,7 +386,10 @@ export class Subscriptions {
       this.subscriptions = subscriptions;
 
       await this.recoverWebSocket();
+      return;
     }
+
+    this.logger.info('Successfully recovered WebSocket connection.');
   }
 
   /**
@@ -454,7 +457,7 @@ export class Subscriptions {
           content: JSON.stringify(payload)
         });
 
-        this.logger.debug('Sending message.', message);
+        this.logger.debug(`Sending message-${id}.`, message);
         this.ws.send(message, error => typeof error !== 'undefined' && reject(this.createErrorMessage(error.message)));
       }
     ).catch((message: ClientErrorMessage) => {
