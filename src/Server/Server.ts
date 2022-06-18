@@ -92,11 +92,16 @@ export class Server extends TypedEmitter<Events> {
       that.group.client.emit('connect', connection);
     }
 
-    function handleClose(code?: number, reason?: Buffer) {
+    async function handleClose(code?: number, reason?: Buffer) {
       connection.off('open', handleOpen);
-      that.logger.info(`Console connection closed on server ${that.id} (${that.name}).`, code, reason?.toString());
-      that.status = 'disconnected';
-      that.disconnect();
+
+      /* Reconnect console connection when closed unexpectedly. */
+      if (code === 3000) {
+        that.disconnect();
+      } else {
+        that.logger.info(`Console connection closed on server ${that.id} (${that.name}).`, code, reason?.toString());
+        await that.reconnect();
+      }
     }
 
     const connection = new ServerConnection(this, address, port, token);
@@ -117,6 +122,16 @@ export class Server extends TypedEmitter<Events> {
     this.logger.info(`Closing console connection to server ${this.id} (${this.name}).`);
     this.connection.dispose();
     delete this.connection;
+    this.status = 'disconnected';
+  }
+
+  private async reconnect() {
+    if (typeof this.connection === 'undefined') return;
+
+    this.disconnect();
+
+    this.logger.info(`Reopening console connection to server ${this.id} (${this.name}).`);
+    await this.connect();
   }
 
   /**

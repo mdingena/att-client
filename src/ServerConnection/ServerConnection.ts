@@ -53,9 +53,7 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
         `Console ${that.server.id} (${that.server.name}) is closing with code ${code}: ${reason.toString()}.`
       );
 
-      this.off('error', handleError);
-      this.off('ping', handlePing);
-      this.off('pong', handlePong);
+      this.removeAllListeners();
 
       that.emit('close', code, reason);
     }
@@ -219,9 +217,7 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
    * the WebSocket connection.
    */
   dispose() {
+    this.ws.close(3000, 'Disposing console connection.');
     this.events.removeAllListeners();
-    this.removeAllListeners();
-    this.ws.removeAllListeners();
-    this.ws.close();
   }
 }
