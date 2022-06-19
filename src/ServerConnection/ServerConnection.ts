@@ -95,7 +95,6 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
       that.logger.debug(`Console ${that.server.id} (${that.server.name}) opened.`);
 
       that.logger.debug(`Registering console ${that.server.id} (${that.server.name}) event handlers.`);
-      this.on('error', handleError);
       this.on('ping', handlePing);
       this.on('pong', handlePong);
       this.on('message', handleMessage);
@@ -114,6 +113,7 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
     }
 
     this.ws = new WebSocket(`ws://${address}:${port}`);
+    this.ws.on('error', handleError);
     this.ws.once('close', handleClose);
     this.ws.once('open', handleOpen);
   }
@@ -217,7 +217,7 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
    * the WebSocket connection.
    */
   dispose() {
-    this.ws.close(3000, 'Disposing console connection.');
+    this.ws.close(1000, 'Disposing console connection.');
     this.events.removeAllListeners();
   }
 }

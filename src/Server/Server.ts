@@ -48,7 +48,7 @@ export class Server extends TypedEmitter<Events> {
   /**
    * Retrieves a server's connection details and establish a console connection.
    */
-  async connect() {
+  async connect(): Promise<void> {
     if (typeof this.connection !== 'undefined') {
       this.logger.error(`Can't open a second connection to server ${this.id}'s (${this.name}) console.`);
       return;
@@ -79,52 +79,65 @@ export class Server extends TypedEmitter<Events> {
       return;
     }
 
-    this.status = 'connecting';
     const that = this;
-    let connection: ServerConnection;
-
-    function handleError(error: Error) {
-      that.logger.error(`Error on console connection on server ${that.id} (${that.name}).`, error.message);
-    }
-
-    function handleOpen() {
-      that.logger.info(`Console connection opened on server ${that.id} (${that.name}).`);
-      that.status = 'connected';
-      that.group.client.emit('connect', connection);
-    }
-
-    async function handleClose(code?: number, reason?: Buffer) {
-      connection.off('open', handleOpen);
-
-      /* Reconnect console connection when closed unexpectedly. */
-      if (code === 3000) {
-        that.disconnect();
-      } else {
-        that.logger.info(`Console connection closed on server ${that.id} (${that.name}).`, code, reason?.toString());
-        await that.reconnect();
-      }
-    }
 
     try {
-      connection = new ServerConnection(this, address, port, token);
+      await new Promise<void>((resolve, reject) => {
+        function handleError(this: ServerConnection, error: Error) {
+          that.logger.error(`Error on console connection on server ${that.id} (${that.name}).`, error.message);
 
-      connection.on('error', handleError);
-      connection.once('close', handleClose);
-      connection.once('open', handleOpen);
+          /**
+           * If errors happen before the WebSocket connection is opened, it's likely
+           * that the WebSocket won't open anymore. In this case we want to reject
+           * so that we can trigger a recovery.
+           *
+           * In other cases, errors will happen during a connection. If that results
+           * in the WebSocket closing, we can handle this in the onClose handler,
+           * because supposedly not all errors result in a disconnect.
+           */
+          if (that.status !== 'connected') {
+            reject(error);
+          }
+        }
 
-      this.connection = connection;
+        function handleOpen(this: ServerConnection) {
+          that.logger.info(`Console connection opened on server ${that.id} (${that.name}).`);
+          that.status = 'connected';
+          that.group.client.emit('connect', this);
+          resolve();
+        }
+
+        async function handleClose(this: ServerConnection, code?: number, reason?: Buffer) {
+          if (code === 1000) {
+            that.disconnect();
+          } else {
+            /* Reconnect console connection when closed unexpectedly. */
+            that.logger.info(
+              `Console connection closed on server ${that.id} (${that.name}).`,
+              code,
+              reason?.toString()
+            );
+
+            await that.reconnect();
+          }
+        }
+
+        this.status = 'connecting';
+
+        const connection = new ServerConnection(this, address, port, token);
+
+        connection.on('error', handleError.bind(connection));
+        connection.once('close', handleClose.bind(connection));
+        connection.once('open', handleOpen.bind(connection));
+
+        this.connection = connection;
+      });
     } catch (error) {
-      delete this.connection;
-      this.status = 'disconnected';
-
       this.logger.error(
-        `Something went wrong opening a console connection to server ${this.name}. Retrying in ${
-          this.group.client.config.serverConnectionRecoveryDelay
-        } ms. Error was: ${(error as Error).message}`
+        `Something went wrong opening a console connection to server ${this.name}: ${(error as Error).message}`
       );
 
-      await new Promise(resolve => setTimeout(resolve, this.group.client.config.serverConnectionRecoveryDelay));
-      await this.connect();
+      await this.reconnect();
     }
   }
 
@@ -140,6 +153,9 @@ export class Server extends TypedEmitter<Events> {
     this.status = 'disconnected';
   }
 
+  /**
+   * Reconnects to this server's console connection after the configured delay.
+   */
   private async reconnect() {
     if (typeof this.connection === 'undefined') return;
 
@@ -154,7 +170,7 @@ export class Server extends TypedEmitter<Events> {
   }
 
   /**
-   * Updates a server with new information.
+   * Updates this server with new information.
    */
   update(status: ServerInfo) {
     this.description = status.description;

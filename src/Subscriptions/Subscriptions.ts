@@ -35,7 +35,7 @@ export class Subscriptions {
   /**
    * Initialises a WebSocket connection with the Alta server.
    */
-  async init() {
+  async init(): Promise<void> {
     if (typeof this.client.accessToken === 'undefined') {
       this.logger.error("Can't initialise subscriptions without an access token. Ordering client to refresh tokens.");
       await this.client.refreshTokens();
@@ -44,28 +44,130 @@ export class Subscriptions {
     }
 
     this.ws = await this.createWebSocket(this.client.accessToken);
-
-    await this.registerEventHandlers(this.ws);
   }
 
   /**
    * Creates a new WebSocket instance.
    */
   private async createWebSocket(accessToken: string): Promise<WebSocket> {
-    this.logger.debug('Creating new WebSocket.');
-
-    const headers = {
-      'Content-Type': 'application/json',
-      'x-api-key': this.client.config.xApiKey,
-      'User-Agent': this.client.config.clientId,
-      'Authorization': `Bearer ${accessToken}`
-    };
-    this.logger.debug('Configured WebSocket headers.', JSON.stringify(headers));
-
-    let ws: WebSocket;
-
     try {
-      ws = new WebSocket(this.client.config.webSocketUrl, { headers });
+      return await new Promise<WebSocket>((resolve, reject) => {
+        const that = this;
+
+        function handleError(this: WebSocket, error: Error) {
+          that.logger.error('An error occurred on the WebSocket.', error.message);
+
+          /**
+           * If errors happen before the WebSocket connection is opened, it's likely
+           * that the WebSocket won't open anymore. In this case we want to reject
+           * so that we can trigger a recovery.
+           *
+           * In other cases, errors will happen during a connection. If that results
+           * in the WebSocket closing, we can handle this in the onClose handler,
+           * because supposedly not all errors result in a disconnect.
+           *
+           * See: https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
+           */
+          if (this.readyState !== 1) {
+            this.removeAllListeners();
+            clearInterval(that.pingInterval);
+
+            reject(error);
+          }
+        }
+
+        function handlePing(this: WebSocket, data: Buffer) {
+          that.logger.debug('Received WebSocket ping.', data.toString());
+          this.pong(data);
+        }
+
+        function handlePong(this: WebSocket, data: Buffer) {
+          that.logger.debug('Received WebSocket pong.', data.toString());
+        }
+
+        async function handleClose(this: WebSocket, code: number, reason: Buffer) {
+          that.logger.debug(`WebSocket is closing with code ${code}: ${reason.toString()}`);
+
+          this.removeAllListeners();
+          clearInterval(that.pingInterval);
+
+          /* Migrations close WebSocket with code 3000 or 3001. */
+          if (code !== 3000 && code !== 3001) {
+            that.logger.error(`WebSocket closed abnormally with code ${code}: ${reason}`);
+            that.logger.info('Restarting WebSocket and subscriptions.');
+
+            await that.recoverWebSocket();
+          }
+        }
+
+        function handleMessage(this: WebSocket, data: Buffer, isBinary: boolean) {
+          if (isBinary) {
+            // This should never happen. There is no Alta documentation about binary data being sent through WebSockets.
+            that.logger.error('Puking horses! 🐴🐴🤮'); // https://thepetwiki.com/wiki/do_horses_vomit/
+            that.logger.debug('Received binary data on WebSocket.', data.toString());
+            return;
+          }
+
+          const message = JSON.parse(data.toString());
+
+          /* Handle messages during migration. */
+          if (typeof that.resolveHalted !== 'undefined') {
+            that.events.emit('migrate', message);
+            return;
+          }
+
+          if (typeof message.content === 'undefined') {
+            that.logger.error(`Received a message with ID ${message.id} but no content.`, JSON.stringify(message));
+            return;
+          }
+
+          that.logger.debug(`Received ${message.event} message with ID ${message.id}.`, JSON.stringify(message));
+
+          const eventName = message.id === 0 ? `${message.event}/${message.key}` : `message-${message.id}`;
+          that.events.emit(eventName, {
+            ...message,
+            content: message.content.length > 0 ? JSON.parse(message.content) : message.content
+          });
+        }
+
+        function handleOpen(this: WebSocket) {
+          that.logger.debug('WebSocket opened.');
+
+          that.logger.debug('Registering WebSocket event handlers.');
+          this.on('ping', handlePing);
+          this.on('pong', handlePong);
+          this.on('message', handleMessage);
+
+          that.logger.debug('Registering WebSocket ping interval.');
+          clearInterval(that.pingInterval);
+          that.pingInterval = setInterval(() => {
+            that.ping(this);
+          }, that.client.config.webSocketPingInterval);
+
+          resolve(ws);
+        }
+
+        this.logger.debug('Creating new WebSocket.');
+
+        const headers = {
+          'Content-Type': 'application/json',
+          'x-api-key': this.client.config.xApiKey,
+          'User-Agent': this.client.config.clientId,
+          'Authorization': `Bearer ${accessToken}`
+        };
+        this.logger.debug('Configured WebSocket headers.', JSON.stringify(headers));
+
+        const ws = new WebSocket(this.client.config.webSocketUrl, { headers });
+
+        ws.on('error', handleError);
+        ws.once('close', handleClose);
+        ws.once('open', handleOpen);
+
+        this.logger.debug('Created new WebSocket.');
+
+        clearTimeout(this.migrationDelay);
+        this.migrationDelay = setTimeout(this.migrate.bind(this), this.client.config.webSocketMigrationInterval);
+      });
     } catch (error) {
       this.logger.error(
         `Something went wrong opening WebSocket to Alta. Retrying in ${
@@ -76,104 +178,6 @@ export class Subscriptions {
       await new Promise(resolve => setTimeout(resolve, this.client.config.webSocketRecoveryRetryDelay));
       return await this.createWebSocket(accessToken);
     }
-
-    this.logger.debug('Created new WebSocket.');
-
-    clearTimeout(this.migrationDelay);
-    this.migrationDelay = setTimeout(this.migrate.bind(this), this.client.config.webSocketMigrationInterval);
-
-    return ws;
-  }
-
-  /**
-   * Takes a WebSocket instance and registers event handlers and timers to manage it.
-   */
-  private registerEventHandlers(ws: WebSocket): Promise<void> {
-    return new Promise(resolve => {
-      const that = this;
-
-      function handleError(this: WebSocket, error: Error) {
-        that.logger.error('An error occurred on the WebSocket.', error.message);
-      }
-
-      function handlePing(this: WebSocket, data: Buffer) {
-        that.logger.debug('Received WebSocket ping.', data.toString());
-        this.pong(data);
-      }
-
-      function handlePong(this: WebSocket, data: Buffer) {
-        that.logger.debug('Received WebSocket pong.', data.toString());
-      }
-
-      async function handleClose(this: WebSocket, code: number, reason: Buffer) {
-        that.logger.debug(`WebSocket is closing with code ${code}: ${reason.toString()}`);
-
-        this.off('error', handleError);
-        this.off('ping', handlePing);
-        this.off('pong', handlePong);
-
-        clearInterval(that.pingInterval);
-
-        /* Migrations close WebSocket with code 3000 or 3001. */
-        if (code !== 3000 && code !== 3001) {
-          that.logger.error(`WebSocket closed abnormally with code ${code}: ${reason}`);
-          that.logger.info('Restarting WebSocket and subscriptions.');
-
-          await that.recoverWebSocket();
-        }
-      }
-
-      function handleMessage(this: WebSocket, data: Buffer, isBinary: boolean) {
-        if (isBinary) {
-          // This should never happen. There is no Alta documentation about binary data being sent through WebSockets.
-          that.logger.error('Puking horses! 🐴🐴🤮'); // https://thepetwiki.com/wiki/do_horses_vomit/
-          that.logger.debug('Received binary data on WebSocket.', data.toString());
-          return;
-        }
-
-        const message = JSON.parse(data.toString());
-
-        /* Handle messages during migration. */
-        if (typeof that.resolveHalted !== 'undefined') {
-          that.events.emit('migrate', message);
-          return;
-        }
-
-        if (typeof message.content === 'undefined') {
-          that.logger.error(`Received a message with ID ${message.id} but no content.`, JSON.stringify(message));
-          return;
-        }
-
-        that.logger.debug(`Received ${message.event} message with ID ${message.id}.`, JSON.stringify(message));
-
-        const eventName = message.id === 0 ? `${message.event}/${message.key}` : `message-${message.id}`;
-        that.events.emit(eventName, {
-          ...message,
-          content: message.content.length > 0 ? JSON.parse(message.content) : message.content
-        });
-      }
-
-      function handleOpen(this: WebSocket) {
-        that.logger.debug('WebSocket opened.');
-
-        that.logger.debug('Registering WebSocket event handlers.');
-        this.on('error', handleError);
-        this.on('ping', handlePing);
-        this.on('pong', handlePong);
-        this.on('message', handleMessage);
-
-        that.logger.debug('Registering WebSocket ping interval.');
-        clearInterval(that.pingInterval);
-        that.pingInterval = setInterval(() => {
-          that.ping(this);
-        }, that.client.config.webSocketPingInterval);
-
-        resolve();
-      }
-
-      ws.once('close', handleClose);
-      ws.once('open', handleOpen);
-    });
   }
 
   /**
@@ -234,7 +238,6 @@ export class Subscriptions {
     const oldWs = this.ws;
     delete this.ws;
     this.ws = await this.createWebSocket(this.client.accessToken);
-    await this.registerEventHandlers(this.ws);
 
     /* Send the migration token over new WebSocket. */
     try {
@@ -266,7 +269,6 @@ export class Subscriptions {
     await new Promise(resolve => setTimeout(resolve, this.client.config.webSocketMigrationHandoverPeriod));
 
     oldWs.close(3000, 'Migration completed.');
-    oldWs.removeAllListeners();
     this.logger.info(`Closed old WebSocket.`);
   }
 
@@ -347,7 +349,6 @@ export class Subscriptions {
     this.ws?.removeAllListeners();
     delete this.ws;
     this.ws = await this.createWebSocket(this.client.accessToken);
-    await this.registerEventHandlers(this.ws);
 
     /* Unblock all backed-up messages. */
     this.clearHalted();
