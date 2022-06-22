@@ -3,6 +3,8 @@ type ServerOnlinePlayers = {
   username: string;
 };
 
+export type ServerFleet = 'att-release' | 'att-quest';
+
 export type ServerInfo = {
   id: number;
   name: string;
@@ -21,6 +23,6 @@ export type ServerInfo = {
   owner_type: string;
   owner_id: number;
   type: string;
-  fleet: string;
+  fleet: ServerFleet;
   up_time: string; // "00:00:00"
 };

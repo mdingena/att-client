@@ -10,6 +10,7 @@
 - [`Config.scope`](#configscope)
 - [`Config.serverConnectionRecoveryDelay`](#configserverconnectionrecoverydelay)
 - [`Config.serverHeartbeatTimeout`](#configserverheartbeattimeout)
+- [`Config.supportedServerFleets`](#configsupportedserverfleets)
 - [`Config.tokenUrl`](#configtokenurl)
 - [`Config.webSocketMigrationHandoverPeriod`](#configwebsocketmigrationhandoverperiod)
 - [`Config.webSocketMigrationInterval`](#configwebsocketmigrationinterval)
@@ -37,6 +38,7 @@ interface Config {
   scope: Scope[];
   serverConnectionRecoveryDelay?: number;
   serverHeartbeatTimeout?: number;
+  supportedServerFleets: 'att-release' | 'att-quest';
   tokenUrl?: string;
   webSocketMigrationHandoverPeriod?: number;
   webSocketMigrationInterval?: number;
@@ -160,6 +162,25 @@ This option configures how long a server with an idle console connection is to b
 - Defaults to 10 seconds.
 
 This option configures how long to wait after a server console connection closed unexpectedly before recovering the connection.
+
+## `Config.supportedServerFleets`
+
+- `<ServerFleet[]>` Array of `<ServerFleet>` strings.
+- Defaults to `['att-release', 'att-quest']`.
+
+This option configures which types of servers your [`Client`](./Client.md) will make a console connection to. By default, both `'att-release'` (PCVR) and `'att-quest'` (Meta Quest) server fleets are supported. This option is useful when you're sending commands to game servers that are only available on a particular server fleet. For example, Quest servers do not support `select` and `spawn` command modules, so you can prevent your Client from connecting to these servers by restricting it to PCVR only.
+
+Alternatively, you can let Client connect to all server fleets and handle your decision making logic in the console connection:
+
+```ts
+client.on('connect', connection => {
+  if (connection.server.fleet === 'att-quest') {
+    console.log('This client does not support Quest servers.');
+    connection.disconnect();
+  }
+  /* ... */
+});
+```
 
 ## `Config.tokenUrl`
 

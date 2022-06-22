@@ -80,6 +80,7 @@ export class Client extends TypedEmitter<Events> {
       restBaseUrl: config.restBaseUrl ?? DEFAULTS.restBaseUrl,
       serverConnectionRecoveryDelay: config.serverConnectionRecoveryDelay ?? DEFAULTS.serverConnectionRecoveryDelay,
       serverHeartbeatTimeout: config.serverHeartbeatTimeout ?? DEFAULTS.serverHeartbeatTimeout,
+      supportedServerFleets: config.supportedServerFleets ?? DEFAULTS.supportedServerFleets,
       tokenUrl: config.tokenUrl ?? DEFAULTS.tokenUrl,
       webSocketMigrationHandoverPeriod:
         config.webSocketMigrationHandoverPeriod ?? DEFAULTS.webSocketMigrationHandoverPeriod,

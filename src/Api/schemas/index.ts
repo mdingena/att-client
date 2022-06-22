@@ -5,4 +5,4 @@ export type { GroupServerInfo } from './GroupServerInfo';
 export type { InvitedGroupInfo } from './InvitedGroupInfo';
 export type { JoinedGroupInfo } from './JoinedGroupInfo';
 export type { ServerConnectionInfo } from './ServerConnectionInfo';
-export type { ServerInfo } from './ServerInfo';
+export type { ServerFleet, ServerInfo } from './ServerInfo';

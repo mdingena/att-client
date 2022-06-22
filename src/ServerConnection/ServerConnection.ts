@@ -220,4 +220,11 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
     this.ws.close(1000, 'Disposing console connection.');
     this.events.removeAllListeners();
   }
+
+  /**
+   * Alias for ServerConnection.server.disconnect().
+   */
+  disconnect() {
+    this.server.disconnect();
+  }
 }

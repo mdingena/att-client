@@ -10,6 +10,7 @@ export type {
   InvitedGroupInfo,
   JoinedGroupInfo,
   ServerConnectionInfo,
+  ServerFleet,
   ServerInfo
 } from './schemas';
 export { Api } from './Api';

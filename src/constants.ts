@@ -1,3 +1,4 @@
+import type { ServerFleet } from './Api';
 import type { Config } from './Client/Config';
 import { Verbosity } from './Logger';
 
@@ -9,6 +10,8 @@ const REST_BASE_URL = 'https://967phuchye.execute-api.ap-southeast-2.amazonaws.c
 const SERVER_CONNECTION_RECOVERY_DELAY = 10 * SECOND;
 
 const SERVER_HEARTBEAT_TIMEOUT = 10 * MINUTE;
+
+const SUPPORTED_SERVER_FLEETS: ServerFleet[] = ['att-release', 'att-quest'];
 
 const TOKEN_URL = 'https://accounts.townshiptale.com/connect/token';
 
@@ -40,6 +43,7 @@ export const DEFAULTS: Required<Omit<Config, 'clientId' | 'clientSecret' | 'scop
   restBaseUrl: REST_BASE_URL,
   serverConnectionRecoveryDelay: SERVER_CONNECTION_RECOVERY_DELAY,
   serverHeartbeatTimeout: SERVER_HEARTBEAT_TIMEOUT,
+  supportedServerFleets: SUPPORTED_SERVER_FLEETS,
   tokenUrl: TOKEN_URL,
   webSocketMigrationHandoverPeriod: WEBSOCKET_MIGRATION_HANDOVER_PERIOD,
   webSocketMigrationInterval: WEBSOCKET_MIGRATION_INTERVAL,

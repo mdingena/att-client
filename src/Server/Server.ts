@@ -1,4 +1,4 @@
-import type { Api, ServerInfo } from '../Api';
+import type { Api, ServerFleet, ServerInfo } from '../Api';
 import type { Group } from '../Group';
 import type { Logger } from '../Logger';
 import { TypedEmitter } from 'tiny-typed-emitter';
@@ -21,7 +21,7 @@ export class Server extends TypedEmitter<Events> {
   playability: number;
   players: Player[];
   status: 'disconnected' | 'connecting' | 'connected';
-  fleet: string;
+  fleet: ServerFleet;
 
   private api: Api;
   private connection?: ServerConnection;
@@ -177,6 +177,7 @@ export class Server extends TypedEmitter<Events> {
     this.name = status.name;
     this.playability = status.playability;
     this.players = status.online_players;
+    this.fleet = status.fleet;
 
     this.emit('update', this);
   }

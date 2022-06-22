@@ -1,3 +1,4 @@
+import type { ServerFleet } from '../Api';
 import type { Verbosity } from '../Logger';
 
 export type Scope =
@@ -26,6 +27,7 @@ export interface Config {
   scope: Scope[];
   serverConnectionRecoveryDelay?: number;
   serverHeartbeatTimeout?: number;
+  supportedServerFleets: ServerFleet[];
   tokenUrl?: string;
   webSocketMigrationHandoverPeriod?: number;
   webSocketMigrationInterval?: number;

@@ -11,7 +11,8 @@ export type {
   InvitedGroupInfo,
   JoinedGroupInfo,
   ServerConnectionInfo,
-  ServerInfo
+  ServerInfo,
+  ServerFleet
 } from './Api';
 export type { Config, Scope } from './Client';
 export type { CommandResultMessage, SubscriptionEvent, SubscriptionEventMessage } from './ServerConnection';

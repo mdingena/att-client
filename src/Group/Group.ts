@@ -231,7 +231,9 @@ export class Group extends TypedEmitter<Events> {
       return;
     }
 
-    const mayConnect = this.permissions.includes('Console');
+    const hasConsolePermission = this.permissions.includes('Console');
+    const isSupportedServerFleet = this.client.config.supportedServerFleets.includes(server.fleet);
+    const mayConnect = hasConsolePermission && isSupportedServerFleet;
     const lastHeartbeatAt = +new Date(status.online_ping ?? '2022-06-01T00:00:00.000Z');
     const timeSinceLastHeartbeat = Date.now() - lastHeartbeatAt;
     const isServerOnline = timeSinceLastHeartbeat < this.client.config.serverHeartbeatTimeout;
