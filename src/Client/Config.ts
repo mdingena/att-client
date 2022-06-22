@@ -27,7 +27,7 @@ export interface Config {
   scope: Scope[];
   serverConnectionRecoveryDelay?: number;
   serverHeartbeatTimeout?: number;
-  supportedServerFleets: ServerFleet[];
+  supportedServerFleets?: ServerFleet[];
   tokenUrl?: string;
   webSocketMigrationHandoverPeriod?: number;
   webSocketMigrationInterval?: number;
