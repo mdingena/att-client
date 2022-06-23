@@ -8,6 +8,7 @@ import { Group } from '../Group';
 import { Logger } from '../Logger';
 import { Subscriptions } from '../Subscriptions';
 import { DEFAULTS } from '../constants';
+import { Workers } from '../Workers';
 
 interface Events {
   connect: (serverConnection: ServerConnection) => void;
@@ -76,6 +77,7 @@ export class Client extends TypedEmitter<Events> {
           : DEFAULTS.excludedGroups,
       includedGroups: config.includedGroups ?? DEFAULTS.includedGroups,
       logVerbosity: configuredLogVerbosity,
+      maxWorkerConcurrency: config.maxWorkerConcurrency ?? DEFAULTS.maxWorkerConcurrency,
       scope: config.scope,
       restBaseUrl: config.restBaseUrl ?? DEFAULTS.restBaseUrl,
       serverConnectionRecoveryDelay: config.serverConnectionRecoveryDelay ?? DEFAULTS.serverConnectionRecoveryDelay,
@@ -184,7 +186,15 @@ export class Client extends TypedEmitter<Events> {
 
       if (joinedGroups.length > 0) {
         this.logger.info(`Managing ${joinedGroups.length} group${joinedGroups.length > 1 ? 's' : ''}.`);
-        await Promise.all(joinedGroups.map(({ group, member }) => this.addGroup(group, member)));
+
+        const tasks = joinedGroups.map(
+          ({ group, member }) =>
+            () =>
+              this.addGroup(group, member)
+        );
+
+        const workers = new Workers(this.config.maxWorkerConcurrency);
+        await workers.do(tasks);
       }
 
       /* Accept pending group invites. */
@@ -192,7 +202,11 @@ export class Client extends TypedEmitter<Events> {
 
       if (invites.length > 0) {
         this.logger.info(`Accepting ${invites.length} pending group invite${invites.length > 1 ? 's' : ''}.`);
-        await Promise.all(invites.map(async invite => this.api.acceptGroupInvite(invite.id)));
+
+        const tasks = invites.map(invite => () => this.api.acceptGroupInvite(invite.id));
+
+        const workers = new Workers(this.config.maxWorkerConcurrency);
+        await workers.do(tasks);
       }
     } catch (error) {
       this.logger.error((error as Error).message);
@@ -317,7 +331,7 @@ export class Client extends TypedEmitter<Events> {
   /**
    * Starts managing a group and its servers.
    */
-  private addGroup(group: GroupInfo, member: GroupMemberInfo) {
+  private async addGroup(group: GroupInfo, member: GroupMemberInfo) {
     this.logger.debug(`Adding group ${group.id} (${group.name}).`);
 
     if (Object.keys(this.groups).map(Number).includes(group.id)) {

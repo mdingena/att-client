@@ -22,3 +22,4 @@ export { Group } from './Group';
 export { Server } from './Server';
 export { Logger, Verbosity } from './Logger';
 export { ServerConnection } from './ServerConnection';
+export { Workers } from './Workers';

@@ -5,6 +5,8 @@ import { Verbosity } from './Logger';
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 
+const MAX_WORKER_CONCURRENCY = 25;
+
 const REST_BASE_URL = 'https://967phuchye.execute-api.ap-southeast-2.amazonaws.com/prod/api';
 
 const SERVER_CONNECTION_RECOVERY_DELAY = 10 * SECOND;
@@ -41,6 +43,7 @@ export const DEFAULTS: Required<Omit<Config, 'clientId' | 'clientSecret' | 'scop
   includedGroups: [],
   logVerbosity: Verbosity.Warning,
   restBaseUrl: REST_BASE_URL,
+  maxWorkerConcurrency: MAX_WORKER_CONCURRENCY,
   serverConnectionRecoveryDelay: SERVER_CONNECTION_RECOVERY_DELAY,
   serverHeartbeatTimeout: SERVER_HEARTBEAT_TIMEOUT,
   supportedServerFleets: SUPPORTED_SERVER_FLEETS,

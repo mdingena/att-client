@@ -7,6 +7,7 @@ import type { ClientResponseMessage } from './ClientResponseMessage';
 import { EventEmitter } from 'events';
 import { WebSocket } from 'ws';
 import { HttpMethod, HttpResponseCode } from '../Api';
+import { Workers } from '../Workers';
 
 type SubscribeResult = void | ClientResponseMessage<`POST /ws/subscription/${ClientEvent}`>;
 
@@ -358,25 +359,26 @@ export class Subscriptions {
     this.subscriptions = {};
 
     /* Resubscribe to all saved subscriptions. */
+    const workers = new Workers(this.client.config.maxWorkerConcurrency);
+    const tasks = Object.entries(subscriptions).map(([entry, callback]) => () => {
+      const [subscription, key] = entry.split('/') as [ClientEvent, string];
+
+      if (typeof subscription !== 'string' || typeof key !== 'string') return Promise.resolve();
+
+      this.events.removeAllListeners(entry);
+      return (
+        this.subscribe(subscription, key, callback) ??
+        Promise.reject(
+          new Error(
+            `WebSocket recovery failed! Resubscribing to ${entry} was unsuccessful. Retrying recovery in ${this.client.config.webSocketRecoveryRetryDelay} ms.`
+          )
+        )
+      );
+    });
+
     try {
       await Promise.race<SubscribeResult[]>([
-        Promise.all<Promise<SubscribeResult>[]>(
-          Object.entries(subscriptions).map(([entry, callback]) => {
-            const [subscription, key] = entry.split('/') as [ClientEvent, string];
-
-            if (typeof subscription !== 'string' || typeof key !== 'string') return Promise.resolve();
-
-            this.events.removeAllListeners(entry);
-            return (
-              this.subscribe(subscription, key, callback) ??
-              Promise.reject(
-                new Error(
-                  `WebSocket recovery failed! Resubscribing to ${entry} was unsuccessful. Retrying recovery in ${this.client.config.webSocketRecoveryRetryDelay} ms.`
-                )
-              )
-            );
-          })
-        ),
+        await workers.do(tasks),
         new Promise<never>((_, reject) =>
           setTimeout(() => {
             reject(

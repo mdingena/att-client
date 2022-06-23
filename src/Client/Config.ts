@@ -23,6 +23,7 @@ export interface Config {
   excludedGroups?: number[];
   includedGroups?: number[];
   logVerbosity?: Verbosity;
+  maxWorkerConcurrency?: number;
   restBaseUrl?: string;
   scope: Scope[];
   serverConnectionRecoveryDelay?: number;

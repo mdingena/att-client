@@ -6,6 +6,7 @@
 - [`Config.excludedGroups`](#configexcludedgroups)
 - [`Config.includedGroups`](#configincludedgroups)
 - [`Config.logVerbosity`](#configlogverbosity)
+- [`Config.maxWorkerConcurrency`](#configmaxworkerconcurrency)
 - [`Config.restBaseUrl`](#configrestbaseurl)
 - [`Config.scope`](#configscope)
 - [`Config.serverConnectionRecoveryDelay`](#configserverconnectionrecoverydelay)
@@ -33,7 +34,7 @@ interface Config {
   excludedGroups?: number[];
   includedGroups?: number[];
   logVerbosity?: Verbosity;
-  resubscriptionTimeout?: number;
+  maxWorkerConcurrency?: number;
   restBaseUrl?: string;
   scope: Scope[];
   serverConnectionRecoveryDelay?: number;
@@ -45,6 +46,7 @@ interface Config {
   webSocketMigrationRetryDelay?: number;
   webSocketPingInterval?: number;
   webSocketRecoveryRetryDelay?: number;
+  webSocketRecoveryTimeout?: number;
   webSocketRequestAttempts?: number;
   webSocketRequestRetryDelay?: number;
   webSocketUrl?: string;
@@ -116,12 +118,21 @@ This option changes logging behaviour. The higher `logVerbosity`, the more verbo
 
 :warning: `Debug` verbosity is not recommended for regular operation.
 
+## `Config.maxWorkerConcurrency`
+
+- `<number>` Number of concurrent workers handling requests.
+- Defaults to `25`.
+
+This option configures how many workers are available to handle requests made to Alta services.
+
+:warning: It's not recommended that you change this option. It's been proven that setting this too high will overwhelm Alta services and destabilise your [`Client`](./Client.md)'s connection.
+
 ## `Config.restBaseUrl`
 
 - `<string>` Base URL of the REST API.
 - Defaults to `'https://967phuchye.execute-api.ap-southeast-2.amazonaws.com/prod/api'`.
 
-This options allows you to change where [`Api`](./Api.md) sends its requests.
+This option allows you to change where [`Api`](./Api.md) sends its requests.
 
 :warning: It's not recommended that you change this option.
 
@@ -187,7 +198,7 @@ client.on('connect', connection => {
 - `<string>` URL to JWT endpoint.
 - Defaults to `'https://accounts.townshiptale.com/connect/token'`.
 
-This options allows you to change where [`Client`](./Client.md) retrieves its JWT.
+This option allows you to change where [`Client`](./Client.md) retrieves its JWT.
 
 :warning: It's not recommended that you change this option.
 
@@ -252,7 +263,7 @@ This option configures the delay before retrying failed WebSocket requests.
 - `<string>` URL to bot account WebSocket.
 - Defaults to `'wss://5wx2mgoj95.execute-api.ap-southeast-2.amazonaws.com/dev'`.
 
-This options allows you to change where [`Subscriptions`](./Subscriptions.md) sends its messages.
+This option allows you to change where [`Subscriptions`](./Subscriptions.md) sends its messages.
 
 :warning: It's not recommended that you change this option.
 
@@ -261,6 +272,6 @@ This options allows you to change where [`Subscriptions`](./Subscriptions.md) se
 - `<string>` Authorisation key for the REST API.
 - Defaults to `'2l6aQGoNes8EHb94qMhqQ5m2iaiOM9666oDTPORf'`.
 
-This options allows you to change the authorisation key that [`Api`](./Api.md) uses.
+This option allows you to change the authorisation key that [`Api`](./Api.md) uses.
 
 :warning: It's not recommended that you change this option.

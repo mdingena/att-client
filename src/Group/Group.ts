@@ -151,7 +151,7 @@ export class Group extends TypedEmitter<Events> {
       })
     ]);
 
-    return this.updateServers();
+    await this.updateServers();
   }
 
   /**
