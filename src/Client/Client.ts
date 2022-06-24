@@ -7,7 +7,7 @@ import { Api, DecodedToken } from '../Api';
 import { Group } from '../Group';
 import { Logger } from '../Logger';
 import { Subscriptions } from '../Subscriptions';
-import { DEFAULTS } from '../constants';
+import { DEFAULTS, MAX_WORKER_CONCURRENCY_WARNING } from '../constants';
 import { Workers } from '../Workers';
 
 interface Events {
@@ -64,6 +64,15 @@ export class Client extends TypedEmitter<Events> {
       config.includedGroups.length > 0
     ) {
       this.logger.warn('Client configuration contains both included and excluded groups. Ignoring excluded groups.');
+    }
+
+    if (
+      typeof config.maxWorkerConcurrency !== 'undefined' &&
+      config.maxWorkerConcurrency > MAX_WORKER_CONCURRENCY_WARNING
+    ) {
+      this.logger.warn(
+        'Maximum concurrency is set above recommended level. Client may experience issues with WebSocket migrations as a result of too many concurrent requests.'
+      );
     }
 
     /* Save configuration. */

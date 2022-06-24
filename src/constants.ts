@@ -5,7 +5,9 @@ import { Verbosity } from './Logger';
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 
-const MAX_WORKER_CONCURRENCY = 25;
+const MAX_WORKER_CONCURRENCY = 5;
+
+export const MAX_WORKER_CONCURRENCY_WARNING = 10;
 
 const REST_BASE_URL = 'https://967phuchye.execute-api.ap-southeast-2.amazonaws.com/prod/api';
 
