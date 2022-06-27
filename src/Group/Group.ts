@@ -237,8 +237,9 @@ export class Group extends TypedEmitter<Events> {
     const lastHeartbeatAt = +new Date(status.online_ping ?? '2022-06-01T00:00:00.000Z');
     const timeSinceLastHeartbeat = Date.now() - lastHeartbeatAt;
     const isServerOnline = timeSinceLastHeartbeat < this.client.config.serverHeartbeatTimeout;
+    const hasOnlinePlayers = status.online_players.length > 0;
 
-    if (server.status === 'disconnected' && mayConnect && isServerOnline) {
+    if (server.status === 'disconnected' && mayConnect && isServerOnline && hasOnlinePlayers) {
       await server.connect();
     } else if (server.status !== 'disconnected' && (!mayConnect || !isServerOnline)) {
       server.disconnect();
