@@ -281,6 +281,8 @@ export class Group extends TypedEmitter<Events> {
       ...this.servers,
       [serverId]: new Server(this, server)
     } as Servers;
+
+    this.manageServerConnection(server);
   }
 
   /**
