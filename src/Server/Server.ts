@@ -54,35 +54,49 @@ export class Server extends TypedEmitter<Events> {
       return;
     }
 
-    const connectionDetails = await this.api.getServerConnectionDetails(this.id);
+    const serverConnectionInfo = await this.api.getServerConnectionDetails(this.id);
 
-    if (typeof connectionDetails === 'undefined') {
+    if (typeof serverConnectionInfo === 'undefined') {
       this.logger.error(`Couldn't get connection details for server ${this.id} (${this.name}).`);
       return;
     }
 
-    this.logger.debug(
-      `Got connection details for server ${this.id} (${this.name}).`,
-      JSON.stringify(connectionDetails)
-    );
-
-    const {
-      allowed,
-      connection: { address, websocket_port: port },
-      token
-    } = connectionDetails;
-
-    if (!allowed) {
-      this.logger.error(
-        `This client is not allowed to use server ${this.id}'s (${this.name}) console. Check that the bot account for this client was granted "Console" permissions.`
-      );
-      return;
-    }
-
-    const that = this;
-
     try {
       await new Promise<void>((resolve, reject) => {
+        this.logger.debug(
+          `Got connection details for server ${this.id} (${this.name}).`,
+          JSON.stringify(serverConnectionInfo)
+        );
+
+        const { allowed, connection: connectionDetails, token } = serverConnectionInfo;
+
+        if (typeof connectionDetails === 'undefined') {
+          reject(
+            new Error(
+              `Console WebSocket details are missing for server ${this.id} (${this.name}). ${serverConnectionInfo.message}`
+            )
+          );
+          return;
+        }
+
+        if (typeof token === 'undefined') {
+          reject(new Error(`Console WebSocket token is missing for server ${this.id} (${this.name}).`));
+          return;
+        }
+
+        if (!allowed) {
+          reject(
+            new Error(
+              `This client is not allowed to use server ${this.id}'s (${this.name}) console. Check that the bot account for this client was granted "Console" permissions.`
+            )
+          );
+          return;
+        }
+
+        const { address, websocket_port: port } = connectionDetails;
+
+        const that = this;
+
         function handleError(this: ServerConnection, error: Error) {
           that.logger.error(`Error on console connection on server ${that.id} (${that.name}).`, error.message);
 

@@ -4,7 +4,8 @@ export type ServerConnectionInfo = {
   was_rejection: boolean;
   cold_start: boolean;
   fail_reason: string;
-  connection: {
+  message?: string;
+  connection?: {
     server_id: number;
     address: string;
     local_address: string;
@@ -15,5 +16,5 @@ export type ServerConnectionInfo = {
     websocket_port: number;
     webserver_port: number;
   };
-  token: string;
+  token?: string;
 };
