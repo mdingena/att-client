@@ -39,7 +39,7 @@ const WEBSOCKET_URL = 'wss://5wx2mgoj95.execute-api.ap-southeast-2.amazonaws.com
 
 const X_API_KEY = '2l6aQGoNes8EHb94qMhqQ5m2iaiOM9666oDTPORf';
 
-export const DEFAULTS: Required<Omit<Config, 'clientId' | 'clientSecret' | 'scope'>> = {
+export const DEFAULTS: Required<Omit<Config, 'clientId' | 'clientSecret' | 'scope' | 'username' | 'password'>> = {
   console: console,
   excludedGroups: [],
   includedGroups: [],

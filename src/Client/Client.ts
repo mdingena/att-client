@@ -1,11 +1,12 @@
 import type { GroupInfo, GroupMemberInfo } from '../Api/schemas';
 import type { Config } from './Config';
 import type { ServerConnection } from '../ServerConnection';
+import { createHash } from 'node:crypto';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import jwtDecode from 'jwt-decode';
-import { Api, DecodedToken } from '../Api';
+import { Api, DecodedToken, Endpoint } from '../Api';
 import { Group } from '../Group';
-import { Logger } from '../Logger';
+import { Logger, Verbosity } from '../Logger';
 import { Subscriptions } from '../Subscriptions';
 import { DEFAULTS, MAX_WORKER_CONCURRENCY_WARNING } from '../constants';
 import { Workers } from '../Workers';
@@ -42,6 +43,10 @@ export class Client extends TypedEmitter<Events> {
       configuredConsole.warn(
         "Using Warning log verbosity. You will only see Errors and Warnings. If you want to see more verbose logs, create your client with a higher 'logVerbosity'."
       );
+    } else if (config.logVerbosity >= Verbosity.Debug) {
+      configuredConsole.warn(
+        'You are using Debug log verbosity. This is not recommended for production environments as sensitive information like configured credentials will appear in your logs. Please consider using Info log verbosity or lower for production.'
+      );
     }
 
     const configuredLogVerbosity = config.logVerbosity ?? DEFAULTS.logVerbosity;
@@ -51,10 +56,22 @@ export class Client extends TypedEmitter<Events> {
     this.logger.info('Configuring client.');
 
     /* Validate required configuration. */
-    const { clientId, clientSecret, scope } = config;
-
-    if ([typeof clientId, typeof clientSecret, typeof scope].includes('undefined')) {
-      this.logger.error("Cannot create client without 'clientId', 'clientSecret', and 'scope'.");
+    if ('clientId' in config) {
+      if (
+        typeof config.clientId === 'undefined' ||
+        typeof config.clientSecret === 'undefined' ||
+        typeof config.scope === 'undefined'
+      ) {
+        this.logger.error("Cannot create bot client without 'clientId', 'clientSecret', and 'scope'.");
+        throw new Error('Invalid client configuration.');
+      }
+    } else if ('username' in config) {
+      if (typeof config.username === 'undefined' || typeof config.password === 'undefined') {
+        this.logger.error("Cannot create user client without 'username' and 'password'.");
+        throw new Error('Invalid client configuration.');
+      }
+    } else {
+      this.logger.error('Cannot create client without either bot credentials or user credentials.');
       throw new Error('Invalid client configuration.');
     }
 
@@ -78,9 +95,20 @@ export class Client extends TypedEmitter<Events> {
     }
 
     /* Save configuration. */
+    const credentials =
+      'clientId' in config
+        ? {
+            clientId: config.clientId,
+            clientSecret: config.clientSecret,
+            scope: config.scope
+          }
+        : {
+            username: config.username,
+            password: config.password
+          };
+
     this.config = {
-      clientId: config.clientId,
-      clientSecret: config.clientSecret,
+      ...credentials,
       console: configuredConsole,
       excludedGroups:
         config.excludedGroups && (typeof config.includedGroups === 'undefined' || config.includedGroups.length === 0)
@@ -89,7 +117,6 @@ export class Client extends TypedEmitter<Events> {
       includedGroups: config.includedGroups ?? DEFAULTS.includedGroups,
       logVerbosity: configuredLogVerbosity,
       maxWorkerConcurrency: config.maxWorkerConcurrency ?? DEFAULTS.maxWorkerConcurrency,
-      scope: config.scope,
       restBaseUrl: config.restBaseUrl ?? DEFAULTS.restBaseUrl,
       serverConnectionRecoveryDelay: config.serverConnectionRecoveryDelay ?? DEFAULTS.serverConnectionRecoveryDelay,
       serverHeartbeatTimeout: config.serverHeartbeatTimeout ?? DEFAULTS.serverHeartbeatTimeout,
@@ -133,7 +160,7 @@ export class Client extends TypedEmitter<Events> {
     /* Configure access token and decoded token. */
     const decodedToken = await this.refreshTokens();
 
-    const userId = decodedToken.client_sub;
+    const userId = 'client_sub' in decodedToken ? decodedToken.client_sub : decodedToken.UserId;
 
     /* Initialise subscriptions. */
     this.logger.info('Subscribing to events.');
@@ -256,26 +283,42 @@ export class Client extends TypedEmitter<Events> {
   private async getAccessToken(): Promise<string> {
     this.logger.info('Retrieving access token.');
 
-    const body = new URLSearchParams();
-    body.append('grant_type', 'client_credentials');
-    body.append('client_id', this.config.clientId);
-    body.append('client_secret', this.config.clientSecret);
-    body.append('scope', this.config.scope.join(' '));
+    const body =
+      'clientId' in this.config
+        ? new URLSearchParams({
+            grant_type: 'client_credentials',
+            scope: this.config.scope.join(' '),
+            client_id: this.config.clientId,
+            client_secret: this.config.clientSecret
+          })
+        : JSON.stringify({
+            username: this.config.username,
+            password_hash: this.hashPassword(this.config.password)
+          });
 
     const bodyString = body.toString();
     this.logger.debug('Created access token request payload.', bodyString);
 
-    const headers = {
-      'Host': 'accounts.townshiptale.com',
-      'Content-Type': 'application/x-www-form-urlencoded',
+    const headers = new Headers({
       'Content-Length': bodyString.length.toString(),
       'User-Agent': this.name
-    };
-    this.logger.debug('Configured access token request headers.', JSON.stringify(headers));
+    });
+
+    if ('clientId' in this.config) {
+      headers.append('Content-Type', 'application/x-www-form-urlencoded');
+    } else {
+      headers.append('Content-Type', 'application/json');
+      headers.append('x-api-key', this.config.xApiKey);
+    }
+
+    this.logger.debug('Configured access token request headers.', headers);
+
+    const endpoint =
+      'clientId' in this.config ? this.config.tokenUrl : `${this.config.restBaseUrl}${Endpoint.Sessions}`;
 
     try {
       this.logger.debug('Sending access token request.');
-      const response = await fetch(this.config.tokenUrl, {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers,
         body
@@ -383,5 +426,21 @@ export class Client extends TypedEmitter<Events> {
 
     await group.dispose();
     delete this.groups[groupId];
+  }
+
+  /**
+   * Hashes a password.
+   */
+  private hashPassword(password: string): string {
+    if (/^[0-9a-f]{128}$/i.test(password)) {
+      return password;
+    } else {
+      const hashedPassword = createHash('sha512').update(password).digest('hex');
+      this.logger.warn(
+        `You are using an unhashed password to configure this client. For increased security, please consider replacing any mention of your password in any of your project files with this hash of your password instead: ${hashedPassword}`
+      );
+
+      return hashedPassword;
+    }
   }
 }

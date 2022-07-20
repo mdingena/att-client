@@ -5,5 +5,6 @@ export const enum Endpoint {
   GroupMember = '/groups/{groupId}/members/{userId}',
   JoinedGroups = '/groups/joined',
   ServerInfo = '/servers/{serverId}',
-  ServerConsole = '/servers/{serverId}/console'
+  ServerConsole = '/servers/{serverId}/console',
+  Sessions = '/sessions'
 }

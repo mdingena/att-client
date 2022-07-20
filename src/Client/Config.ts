@@ -16,16 +16,13 @@ export type Scope =
   | 'ws.group_members'
   | 'ws.group_servers';
 
-export interface Config {
-  clientId: string;
-  clientSecret: string;
+interface CommonConfig {
   console?: Pick<Console, 'error' | 'warn' | 'info' | 'debug'>;
   excludedGroups?: number[];
   includedGroups?: number[];
   logVerbosity?: Verbosity;
   maxWorkerConcurrency?: number;
   restBaseUrl?: string;
-  scope: Scope[];
   serverConnectionRecoveryDelay?: number;
   serverHeartbeatTimeout?: number;
   supportedServerFleets?: ServerFleet[];
@@ -41,3 +38,16 @@ export interface Config {
   webSocketUrl?: string;
   xApiKey?: string;
 }
+
+interface BotConfig extends CommonConfig {
+  clientId: string;
+  clientSecret: string;
+  scope: Scope[];
+}
+
+interface UserConfig extends CommonConfig {
+  username: string;
+  password: string;
+}
+
+export type Config = BotConfig | UserConfig;
