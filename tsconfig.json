@@ -20,6 +20,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "outDir": "dist",
+    "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
     "target": "es2021"

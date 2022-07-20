@@ -9,6 +9,7 @@ import { Logger } from '../Logger';
 import { Subscriptions } from '../Subscriptions';
 import { DEFAULTS, MAX_WORKER_CONCURRENCY_WARNING } from '../constants';
 import { Workers } from '../Workers';
+import pkg from '../../package.json';
 
 interface Events {
   connect: (serverConnection: ServerConnection) => void;
@@ -23,6 +24,7 @@ export class Client extends TypedEmitter<Events> {
   config: Required<Config>;
   groups: Groups;
   logger: Logger;
+  name: string;
   subscriptions: Subscriptions;
 
   private decodedToken?: DecodedToken;
@@ -110,6 +112,7 @@ export class Client extends TypedEmitter<Events> {
     this.api = new Api(this);
     this.groups = {};
     this.initialised = false;
+    this.name = `${pkg.name} v${pkg.version}`;
     this.subscriptions = new Subscriptions(this);
   }
 
@@ -266,7 +269,7 @@ export class Client extends TypedEmitter<Events> {
       'Host': 'accounts.townshiptale.com',
       'Content-Type': 'application/x-www-form-urlencoded',
       'Content-Length': bodyString.length.toString(),
-      'User-Agent': this.config.clientId
+      'User-Agent': this.name
     };
     this.logger.debug('Configured access token request headers.', JSON.stringify(headers));
 

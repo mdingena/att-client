@@ -153,7 +153,7 @@ export class Subscriptions {
         const headers = {
           'Content-Type': 'application/json',
           'x-api-key': this.client.config.xApiKey,
-          'User-Agent': this.client.config.clientId,
+          'User-Agent': this.client.name,
           'Authorization': `Bearer ${accessToken}`
         };
         this.logger.debug('Configured WebSocket headers.', JSON.stringify(headers));
@@ -186,7 +186,7 @@ export class Subscriptions {
    */
   private ping(ws: WebSocket) {
     this.logger.debug('Pinging WebSocket.');
-    ws.ping(this.client.config.clientId);
+    ws.ping(this.client.name);
   }
 
   /**

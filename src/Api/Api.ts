@@ -31,7 +31,7 @@ export class Api {
     this.headers = new Headers({
       'Content-Type': 'application/json',
       'x-api-key': this.client.config.xApiKey,
-      'User-Agent': this.client.config.clientId,
+      'User-Agent': this.client.name,
       'Authorization': `Bearer ${this.client.accessToken}`
     });
   }
