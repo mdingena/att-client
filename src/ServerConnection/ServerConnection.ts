@@ -1,7 +1,6 @@
 import type { CommandResultMessage } from './CommandResultMessage';
 import type { SubscriptionEvent } from './SubscriptionEvent';
 import type { SubscriptionEventMessage } from './SubscriptionEventMessage';
-import type { Logger } from '../Logger';
 import type { Server } from '../Server';
 import EventEmitter from 'events';
 import { TypedEmitter } from 'tiny-typed-emitter';
@@ -18,7 +17,6 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
 
   private commandId: number;
   private events: EventEmitter;
-  private logger: Logger;
   private subscribedEvents: SubscriptionEvent[];
   private ws: WebSocket;
 
@@ -27,29 +25,37 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
 
     this.commandId = 1;
     this.events = new EventEmitter();
-    this.logger = server.group.client.logger;
     this.server = server;
     this.subscribedEvents = [];
 
     const that = this;
 
     function handleError(this: WebSocket, error: Error) {
-      that.logger.error(`An error occurred on console ${that.server.id} (${that.server.name}).`, error.message);
+      that.server.group.client.logger.error(
+        `An error occurred on console ${that.server.id} (${that.server.name}).`,
+        error.message
+      );
 
       that.emit('error', error);
     }
 
     function handlePing(this: WebSocket, data: Buffer) {
-      that.logger.debug(`Received console ${that.server.id} (${that.server.name}) ping.`, data.toString());
+      that.server.group.client.logger.debug(
+        `Received console ${that.server.id} (${that.server.name}) ping.`,
+        data.toString()
+      );
       this.pong(data);
     }
 
     function handlePong(this: WebSocket, data: Buffer) {
-      that.logger.debug(`Received console ${that.server.id} (${that.server.name}) pong.`, data.toString());
+      that.server.group.client.logger.debug(
+        `Received console ${that.server.id} (${that.server.name}) pong.`,
+        data.toString()
+      );
     }
 
     function handleClose(this: WebSocket, code: number, reason: Buffer) {
-      that.logger.debug(
+      that.server.group.client.logger.debug(
         `Console ${that.server.id} (${that.server.name}) is closing with code ${code}: ${reason.toString()}.`
       );
 
@@ -61,8 +67,11 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
     function handleMessage(this: WebSocket, data: Buffer, isBinary: boolean) {
       if (isBinary) {
         // This should never happen. There is no Alta documentation about binary data being sent through WebSockets.
-        that.logger.error('Puking horses! 🐴🐴🤮'); // https://thepetwiki.com/wiki/do_horses_vomit/
-        that.logger.debug(`Received binary data on console ${that.server.id} (${that.server.name}):`, data.toString());
+        that.server.group.client.logger.error('Puking horses! 🐴🐴🤮'); // https://thepetwiki.com/wiki/do_horses_vomit/
+        that.server.group.client.logger.debug(
+          `Received binary data on console ${that.server.id} (${that.server.name}):`,
+          data.toString()
+        );
         return;
       }
 
@@ -73,7 +82,7 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
           ? `${message.type}${typeof message.eventType === 'undefined' ? '' : `/${message.eventType}`}`
           : `command-${message.commandId}`;
 
-      that.logger.debug(
+      that.server.group.client.logger.debug(
         `Console ${that.server.id} (${that.server.name}) received ${eventName} message.`,
         JSON.stringify(message)
       );
@@ -92,23 +101,27 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
     }
 
     function handleOpen(this: WebSocket) {
-      that.logger.debug(`Console ${that.server.id} (${that.server.name}) opened.`);
+      that.server.group.client.logger.debug(`Console ${that.server.id} (${that.server.name}) opened.`);
 
-      that.logger.debug(`Registering console ${that.server.id} (${that.server.name}) event handlers.`);
+      that.server.group.client.logger.debug(
+        `Registering console ${that.server.id} (${that.server.name}) event handlers.`
+      );
       this.on('ping', handlePing);
       this.on('pong', handlePong);
       this.on('message', handleMessage);
 
       this.send(token, error => {
         if (typeof error !== 'undefined') {
-          that.logger.error(
+          that.server.group.client.logger.error(
             `Couldn't authenticate console ${that.server.id} (${that.server.name}) connection.`,
             error.message
           );
           return;
         }
 
-        that.logger.debug(`Authenticated console connection on server ${that.server.id} (${that.server.name}).`);
+        that.server.group.client.logger.debug(
+          `Authenticated console connection on server ${that.server.id} (${that.server.name}).`
+        );
       });
     }
 
@@ -136,7 +149,7 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
    */
   send<T>(command: string) {
     if (/^(websocket )?(un)?subscribe/i.test(command)) {
-      this.logger.error(
+      this.server.group.client.logger.error(
         `Do not use send() to (un)subscribe to events. Please use subscribe() or unsubscribe() instead.`
       );
       return;
@@ -161,7 +174,10 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
 
         const message = JSON.stringify({ id, content: command });
 
-        this.logger.debug(`Sending command-${id} to ${this.server.id} (${this.server.name}).`, message);
+        this.server.group.client.logger.debug(
+          `Sending command-${id} to ${this.server.id} (${this.server.name}).`,
+          message
+        );
         this.ws.send(message, error => typeof error !== 'undefined' && reject(error));
       }
     );
@@ -179,11 +195,13 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
    */
   subscribe<T extends SubscriptionEvent>(event: T, callback: (message: SubscriptionEventMessage<T>) => unknown) {
     if (this.subscribedEvents.includes(event)) {
-      this.logger.error(`Already subscribed to ${event} on server ${this.server.id} (${this.server.name}).`);
+      this.server.group.client.logger.error(
+        `Already subscribed to ${event} on server ${this.server.id} (${this.server.name}).`
+      );
       return;
     }
 
-    this.logger.info(`Subscribing to ${event} on server ${this.server.id} (${this.server.name}).`);
+    this.server.group.client.logger.info(`Subscribing to ${event} on server ${this.server.id} (${this.server.name}).`);
     this.subscribedEvents = [...this.subscribedEvents, event];
     this.events.on(`Subscription/${event}`, callback);
 
@@ -201,11 +219,15 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
    */
   unsubscribe<T extends SubscriptionEvent>(event: T) {
     if (!this.subscribedEvents.includes(event)) {
-      this.logger.error(`Subscription to ${event} does not exist on server ${this.server.id} (${this.server.name}).`);
+      this.server.group.client.logger.error(
+        `Subscription to ${event} does not exist on server ${this.server.id} (${this.server.name}).`
+      );
       return;
     }
 
-    this.logger.info(`Unsubscribing to ${event} on server ${this.server.id} (${this.server.name}).`);
+    this.server.group.client.logger.info(
+      `Unsubscribing to ${event} on server ${this.server.id} (${this.server.name}).`
+    );
     this.subscribedEvents = this.subscribedEvents.filter(existing => existing !== event);
     this.events.removeAllListeners(`Subscription/${event}`);
 

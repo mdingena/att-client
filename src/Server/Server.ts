@@ -1,6 +1,5 @@
-import type { Api, ServerFleet, ServerInfo } from '../Api';
+import type { ServerFleet, ServerInfo } from '../Api';
 import type { Group } from '../Group';
-import type { Logger } from '../Logger';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { ServerConnection } from '../ServerConnection';
 
@@ -23,16 +22,11 @@ export class Server extends TypedEmitter<Events> {
   status: 'disconnected' | 'connecting' | 'connected';
   fleet: ServerFleet;
 
-  private api: Api;
   private connection?: ServerConnection;
-  private logger: Logger;
 
   constructor(group: Group, server: ServerInfo) {
     super();
 
-    this.logger = group.client.logger;
-
-    this.api = group.client.api;
     this.description = server.description ?? '';
     this.fleet = server.fleet;
     this.group = group;
@@ -50,20 +44,20 @@ export class Server extends TypedEmitter<Events> {
    */
   async connect(): Promise<void> {
     if (typeof this.connection !== 'undefined') {
-      this.logger.error(`Can't open a second connection to server ${this.id}'s (${this.name}) console.`);
+      this.group.client.logger.error(`Can't open a second connection to server ${this.id}'s (${this.name}) console.`);
       return;
     }
 
-    const serverConnectionInfo = await this.api.getServerConnectionDetails(this.id);
+    const serverConnectionInfo = await this.group.client.api.getServerConnectionDetails(this.id);
 
     if (typeof serverConnectionInfo === 'undefined') {
-      this.logger.error(`Couldn't get connection details for server ${this.id} (${this.name}).`);
+      this.group.client.logger.error(`Couldn't get connection details for server ${this.id} (${this.name}).`);
       return;
     }
 
     try {
       await new Promise<void>((resolve, reject) => {
-        this.logger.debug(
+        this.group.client.logger.debug(
           `Got connection details for server ${this.id} (${this.name}).`,
           JSON.stringify(serverConnectionInfo)
         );
@@ -98,7 +92,10 @@ export class Server extends TypedEmitter<Events> {
         const that = this;
 
         function handleError(this: ServerConnection, error: Error) {
-          that.logger.error(`Error on console connection on server ${that.id} (${that.name}).`, error.message);
+          that.group.client.logger.error(
+            `Error on console connection on server ${that.id} (${that.name}).`,
+            error.message
+          );
 
           /**
            * If errors happen before the WebSocket connection is opened, it's likely
@@ -115,7 +112,7 @@ export class Server extends TypedEmitter<Events> {
         }
 
         function handleOpen(this: ServerConnection) {
-          that.logger.info(`Console connection opened on server ${that.id} (${that.name}).`);
+          that.group.client.logger.info(`Console connection opened on server ${that.id} (${that.name}).`);
           that.status = 'connected';
           that.group.client.emit('connect', this);
           resolve();
@@ -126,7 +123,7 @@ export class Server extends TypedEmitter<Events> {
             that.disconnect();
           } else {
             /* Reconnect console connection when closed unexpectedly. */
-            that.logger.info(
+            that.group.client.logger.info(
               `Console connection closed on server ${that.id} (${that.name}).`,
               code,
               reason?.toString()
@@ -147,7 +144,7 @@ export class Server extends TypedEmitter<Events> {
         this.connection = connection;
       });
     } catch (error) {
-      this.logger.error(
+      this.group.client.logger.error(
         `Something went wrong opening a console connection to server ${this.name}: ${(error as Error).message}`
       );
 
@@ -161,7 +158,7 @@ export class Server extends TypedEmitter<Events> {
   disconnect() {
     if (typeof this.connection === 'undefined') return;
 
-    this.logger.info(`Closing console connection to server ${this.id} (${this.name}).`);
+    this.group.client.logger.info(`Closing console connection to server ${this.id} (${this.name}).`);
     this.connection.dispose();
     delete this.connection;
     this.status = 'disconnected';
@@ -175,7 +172,7 @@ export class Server extends TypedEmitter<Events> {
 
     this.disconnect();
 
-    this.logger.info(
+    this.group.client.logger.info(
       `Reopening console connection to server ${this.id} (${this.name}) in ${this.group.client.config.serverConnectionRecoveryDelay} ms.`
     );
 

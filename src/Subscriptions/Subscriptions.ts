@@ -1,5 +1,4 @@
 import type { Client } from '../Client';
-import type { Logger } from '../Logger';
 import type { ClientEvent } from './ClientEvent';
 import type { ClientEventMessage } from './ClientEventMessage';
 import type { ClientErrorMessage } from './ClientErrorMessage';
@@ -16,7 +15,6 @@ export class Subscriptions {
   halted: Promise<void>;
 
   private events: EventEmitter;
-  private logger: Logger;
   private messageId: number;
   private migrationDelay?: NodeJS.Timeout;
   private pingInterval?: NodeJS.Timer;
@@ -26,7 +24,6 @@ export class Subscriptions {
 
   constructor(client: Client) {
     this.events = new EventEmitter();
-    this.logger = client.logger;
     this.client = client;
     this.halted = Promise.resolve();
     this.messageId = 1;
@@ -38,7 +35,9 @@ export class Subscriptions {
    */
   async init(): Promise<void> {
     if (typeof this.client.accessToken === 'undefined') {
-      this.logger.error("Can't initialise subscriptions without an access token. Ordering client to refresh tokens.");
+      this.client.logger.error(
+        "Can't initialise subscriptions without an access token. Ordering client to refresh tokens."
+      );
       await this.client.refreshTokens();
       await this.init();
       return;
@@ -56,7 +55,7 @@ export class Subscriptions {
         const that = this;
 
         function handleError(this: WebSocket, error: Error) {
-          that.logger.error('An error occurred on the WebSocket.', error.message);
+          that.client.logger.error('An error occurred on the WebSocket.', error.message);
 
           /**
            * If errors happen before the WebSocket connection is opened, it's likely
@@ -78,24 +77,24 @@ export class Subscriptions {
         }
 
         function handlePing(this: WebSocket, data: Buffer) {
-          that.logger.debug('Received WebSocket ping.', data.toString());
+          that.client.logger.debug('Received WebSocket ping.', data.toString());
           this.pong(data);
         }
 
         function handlePong(this: WebSocket, data: Buffer) {
-          that.logger.debug('Received WebSocket pong.', data.toString());
+          that.client.logger.debug('Received WebSocket pong.', data.toString());
         }
 
         async function handleClose(this: WebSocket, code: number, reason: Buffer) {
-          that.logger.debug(`WebSocket is closing with code ${code}: ${reason.toString()}`);
+          that.client.logger.debug(`WebSocket is closing with code ${code}: ${reason.toString()}`);
 
           this.removeAllListeners();
           clearInterval(that.pingInterval);
 
           /* Migrations close WebSocket with code 3000 or 3001. */
           if (code !== 3000 && code !== 3001) {
-            that.logger.error(`WebSocket closed abnormally with code ${code}: ${reason}`);
-            that.logger.info('Restarting WebSocket and subscriptions.');
+            that.client.logger.error(`WebSocket closed abnormally with code ${code}: ${reason}`);
+            that.client.logger.info('Restarting WebSocket and subscriptions.');
 
             await that.recoverWebSocket();
           }
@@ -104,8 +103,8 @@ export class Subscriptions {
         function handleMessage(this: WebSocket, data: Buffer, isBinary: boolean) {
           if (isBinary) {
             // This should never happen. There is no Alta documentation about binary data being sent through WebSockets.
-            that.logger.error('Puking horses! 🐴🐴🤮'); // https://thepetwiki.com/wiki/do_horses_vomit/
-            that.logger.debug('Received binary data on WebSocket.', data.toString());
+            that.client.logger.error('Puking horses! 🐴🐴🤮'); // https://thepetwiki.com/wiki/do_horses_vomit/
+            that.client.logger.debug('Received binary data on WebSocket.', data.toString());
             return;
           }
 
@@ -118,11 +117,14 @@ export class Subscriptions {
           }
 
           if (typeof message.content === 'undefined') {
-            that.logger.error(`Received a message with ID ${message.id} but no content.`, JSON.stringify(message));
+            that.client.logger.error(
+              `Received a message with ID ${message.id} but no content.`,
+              JSON.stringify(message)
+            );
             return;
           }
 
-          that.logger.debug(`Received ${message.event} message with ID ${message.id}.`, JSON.stringify(message));
+          that.client.logger.debug(`Received ${message.event} message with ID ${message.id}.`, JSON.stringify(message));
 
           const eventName = message.id === 0 ? `${message.event}/${message.key}` : `message-${message.id}`;
           that.events.emit(eventName, {
@@ -132,14 +134,14 @@ export class Subscriptions {
         }
 
         function handleOpen(this: WebSocket) {
-          that.logger.debug('WebSocket opened.');
+          that.client.logger.debug('WebSocket opened.');
 
-          that.logger.debug('Registering WebSocket event handlers.');
+          that.client.logger.debug('Registering WebSocket event handlers.');
           this.on('ping', handlePing);
           this.on('pong', handlePong);
           this.on('message', handleMessage);
 
-          that.logger.debug('Registering WebSocket ping interval.');
+          that.client.logger.debug('Registering WebSocket ping interval.');
           clearInterval(that.pingInterval);
           that.pingInterval = setInterval(() => {
             that.ping(this);
@@ -148,7 +150,7 @@ export class Subscriptions {
           resolve(ws);
         }
 
-        this.logger.debug('Creating new WebSocket.');
+        this.client.logger.debug('Creating new WebSocket.');
 
         const headers = {
           'Content-Type': 'application/json',
@@ -156,7 +158,7 @@ export class Subscriptions {
           'User-Agent': this.client.name,
           'Authorization': `Bearer ${accessToken}`
         };
-        this.logger.debug('Configured WebSocket headers.', JSON.stringify(headers));
+        this.client.logger.debug('Configured WebSocket headers.', JSON.stringify(headers));
 
         const ws = new WebSocket(this.client.config.webSocketUrl, { headers });
 
@@ -164,13 +166,13 @@ export class Subscriptions {
         ws.once('close', handleClose);
         ws.once('open', handleOpen);
 
-        this.logger.debug('Created new WebSocket.');
+        this.client.logger.debug('Created new WebSocket.');
 
         clearTimeout(this.migrationDelay);
         this.migrationDelay = setTimeout(this.migrate.bind(this), this.client.config.webSocketMigrationInterval);
       });
     } catch (error) {
-      this.logger.error(
+      this.client.logger.error(
         `Something went wrong opening WebSocket to Alta. Retrying in ${
           this.client.config.webSocketRecoveryRetryDelay
         } ms. Error was: ${(error as Error).message}`
@@ -185,7 +187,7 @@ export class Subscriptions {
    * Sends a ping on the WebSocket.
    */
   private ping(ws: WebSocket) {
-    this.logger.debug('Pinging WebSocket.');
+    this.client.logger.debug('Pinging WebSocket.');
     ws.ping(this.client.name);
   }
 
@@ -196,26 +198,26 @@ export class Subscriptions {
     await this.halted;
 
     if (typeof this.ws === 'undefined') {
-      this.logger.warn('There is no WebSocket to migrate. Creating new WebSocket.');
+      this.client.logger.warn('There is no WebSocket to migrate. Creating new WebSocket.');
       await this.init();
       return;
     }
 
     if (typeof this.client.accessToken === 'undefined') {
-      this.logger.warn("Can't migrate WebSocket without an access token. Ordering client to refresh tokens.");
+      this.client.logger.warn("Can't migrate WebSocket without an access token. Ordering client to refresh tokens.");
       await this.client.refreshTokens();
       await this.migrate();
       return;
     }
 
-    this.logger.info('Beginning WebSocket migration.');
+    this.client.logger.info('Beginning WebSocket migration.');
 
     clearTimeout(this.migrationDelay);
 
     let token: string;
 
     if (typeof migrationToken === 'undefined') {
-      this.logger.debug('Retrieving migration token.');
+      this.client.logger.debug('Retrieving migration token.');
       const requestMigrateResponse = await this.send('GET', 'migrate');
 
       if (typeof requestMigrateResponse === 'undefined') {
@@ -224,10 +226,10 @@ export class Subscriptions {
       }
 
       token = requestMigrateResponse.content.token;
-      this.logger.debug('Received migration token.', token);
+      this.client.logger.debug('Received migration token.', token);
     } else {
       token = migrationToken;
-      this.logger.debug('Reusing migration token.', token);
+      this.client.logger.debug('Reusing migration token.', token);
     }
 
     /* Track migration state. Will halt all outbound messages. */
@@ -263,7 +265,7 @@ export class Subscriptions {
     this.clearHalted();
 
     /* Gracefully discard old WebSocket instance. */
-    this.logger.info(
+    this.client.logger.info(
       `Successfully migrated WebSocket. Gracefully shutting down old WebSocket in ${this.client.config.webSocketMigrationHandoverPeriod} ms.`
     );
 
@@ -271,7 +273,7 @@ export class Subscriptions {
 
     oldWs.close(3000, 'Migration completed.');
     oldWs.removeAllListeners();
-    this.logger.info(`Closed old WebSocket.`);
+    this.client.logger.info(`Closed old WebSocket.`);
   }
 
   /**
@@ -288,7 +290,7 @@ export class Subscriptions {
         if (message.event === 'response' && message.responseCode === 200 && message.key === 'POST /ws/migrate') {
           resolve(message.content);
         } else {
-          this.logger.error(
+          this.client.logger.error(
             'Something went wrong posting the WebSocket migration token. Received message:',
             JSON.stringify(message)
           );
@@ -304,7 +306,7 @@ export class Subscriptions {
    * Retries a failed WebSocket migration after a configured delay.
    */
   private async retryMigration(migrationToken?: string) {
-    this.logger.error(
+    this.client.logger.error(
       `Client failed to migrate WebSocket. Retrying in ${this.client.config.webSocketMigrationRetryDelay} ms.`
     );
 
@@ -318,7 +320,7 @@ export class Subscriptions {
    */
   private clearHalted() {
     if (typeof this.resolveHalted !== 'undefined') {
-      this.logger.debug('Resolving halted Promise.');
+      this.client.logger.debug('Resolving halted Promise.');
       this.resolveHalted();
       delete this.resolveHalted;
     }
@@ -331,13 +333,13 @@ export class Subscriptions {
    */
   private async recoverWebSocket() {
     if (typeof this.client.accessToken === 'undefined') {
-      this.logger.warn("Can't migrate WebSocket without an access token. Ordering client to refresh tokens.");
+      this.client.logger.warn("Can't migrate WebSocket without an access token. Ordering client to refresh tokens.");
       await this.client.refreshTokens();
       await this.recoverWebSocket();
       return;
     }
 
-    this.logger.info('Recovering WebSocket connection.');
+    this.client.logger.info('Recovering WebSocket connection.');
 
     /* Track recovery state. Will halt all outbound messages. */
     if (typeof this.resolveHalted === 'undefined') {
@@ -396,7 +398,7 @@ export class Subscriptions {
         this.resolveHalted = resolve;
       });
 
-      this.logger.error((error as Error).message);
+      this.client.logger.error((error as Error).message);
 
       await new Promise(resolve => setTimeout(resolve, this.client.config.webSocketRecoveryRetryDelay));
 
@@ -407,7 +409,7 @@ export class Subscriptions {
       return;
     }
 
-    this.logger.info('Successfully recovered WebSocket connection.');
+    this.client.logger.info('Successfully recovered WebSocket connection.');
   }
 
   /**
@@ -434,7 +436,9 @@ export class Subscriptions {
         reject: (error?: ClientErrorMessage) => void
       ) => {
         if (typeof this.client.accessToken === 'undefined' || typeof this.ws === 'undefined') {
-          this.logger.error('Cannot send WebSocket messages. Please verify that Client was initialised properly.');
+          this.client.logger.error(
+            'Cannot send WebSocket messages. Please verify that Client was initialised properly.'
+          );
 
           reject(this.createErrorMessage("Can't send message on WebSocket."));
           return;
@@ -442,12 +446,12 @@ export class Subscriptions {
 
         const id = this.getMessageId();
 
-        this.logger.debug(`Registering one-time event handler for message-${id}.`);
+        this.client.logger.debug(`Registering one-time event handler for message-${id}.`);
         this.events.once(`message-${id}`, (message: ClientResponseMessage<`${M} /ws/${P}`> | ClientErrorMessage) => {
           if (message.responseCode === HttpResponseCode.Ok) {
             resolve(message as ClientResponseMessage<`${M} /ws/${P}`>);
           } else if (attemptsLeft > 0) {
-            this.logger.debug(
+            this.client.logger.debug(
               `Message-${id} has a non-200 responseCode. Retrying request in ${this.client.config.webSocketRequestRetryDelay} ms.`
             );
 
@@ -460,7 +464,7 @@ export class Subscriptions {
               }
             }, this.client.config.webSocketRequestRetryDelay);
           } else {
-            this.logger.debug(
+            this.client.logger.debug(
               `Message-${id} has a non-200 responseCode. Exhausted maximum number of request attempts.`
             );
             reject(message as ClientErrorMessage);
@@ -475,11 +479,11 @@ export class Subscriptions {
           content: JSON.stringify(payload)
         });
 
-        this.logger.debug(`Sending message-${id}.`, message);
+        this.client.logger.debug(`Sending message-${id}.`, message);
         this.ws.send(message, error => typeof error !== 'undefined' && reject(this.createErrorMessage(error.message)));
       }
     ).catch((message: ClientErrorMessage) => {
-      this.logger.error('Subscriptions.send() error:', message.content.message);
+      this.client.logger.error('Subscriptions.send() error:', message.content.message);
     });
   }
 
@@ -490,11 +494,11 @@ export class Subscriptions {
     const subscription = `${event}/${key}`;
 
     if (Object.keys(this.subscriptions).includes(subscription)) {
-      this.logger.error(`Already subscribed to ${subscription}.`);
+      this.client.logger.error(`Already subscribed to ${subscription}.`);
       return;
     }
 
-    this.logger.debug(`Subscribing to ${subscription}.`);
+    this.client.logger.debug(`Subscribing to ${subscription}.`);
     this.subscriptions = { ...this.subscriptions, [subscription]: callback } as Record<
       string,
       <T>(message: ClientEventMessage<T>) => void
@@ -511,11 +515,11 @@ export class Subscriptions {
     const subscription = `${event}/${key}`;
 
     if (!Object.keys(this.subscriptions).includes(subscription)) {
-      this.logger.error(`Subscription to ${subscription} does not exist.`);
+      this.client.logger.error(`Subscription to ${subscription} does not exist.`);
       return;
     }
 
-    this.logger.debug(`Unsubscribing to ${subscription}.`);
+    this.client.logger.debug(`Unsubscribing to ${subscription}.`);
     this.subscriptions = Object.fromEntries(Object.entries(this.subscriptions).filter(([key]) => key !== subscription));
     this.events.removeAllListeners(subscription);
 

@@ -2,7 +2,6 @@ import type { ApiRequest } from './ApiRequest';
 import type { ApiResponse } from './ApiResponse';
 import type { HttpMethod } from './HttpMethod';
 import type { Client } from '../Client';
-import type { Logger } from '../Logger';
 import { Endpoint } from './Endpoint';
 
 type Parameters = Record<string, string | number>;
@@ -11,11 +10,9 @@ export class Api {
   client: Client;
 
   private headers?: Headers;
-  private logger: Logger;
 
   constructor(client: Client) {
     this.client = client;
-    this.logger = client.logger;
   }
 
   /**
@@ -23,7 +20,9 @@ export class Api {
    */
   async auth() {
     if (typeof this.client.accessToken === 'undefined') {
-      this.logger.error("Can't authorise API requests without an access token. Ordering client to refresh tokens.");
+      this.client.logger.error(
+        "Can't authorise API requests without an access token. Ordering client to refresh tokens."
+      );
       await this.client.refreshTokens();
       return;
     }
@@ -114,12 +113,12 @@ export class Api {
    */
   private async request(method: HttpMethod, url: URL, payload?: ApiRequest): Promise<unknown> {
     if (typeof this.headers === 'undefined') {
-      this.logger.error('API is not authorised. Ordering authorisation now.');
+      this.client.logger.error('API is not authorised. Ordering authorisation now.');
       await this.auth();
       return await this.request(method, url, payload);
     }
 
-    this.logger.debug(`Requesting ${method} ${url}`, JSON.stringify(payload));
+    this.client.logger.debug(`Requesting ${method} ${url}`, JSON.stringify(payload));
 
     const response = await fetch(url.toString(), {
       method,
@@ -128,13 +127,13 @@ export class Api {
     });
 
     if (!response.ok) {
-      this.logger.error(`${method} ${url} ${payload} responded with ${response.status} ${response.statusText}.`);
+      this.client.logger.error(`${method} ${url} ${payload} responded with ${response.status} ${response.statusText}.`);
 
       try {
         const body = await response.json();
-        this.logger.error(JSON.stringify(body));
+        this.client.logger.error(JSON.stringify(body));
       } catch (error) {
-        this.logger.error(error);
+        this.client.logger.error(error);
       }
 
       return;
