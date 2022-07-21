@@ -9,37 +9,44 @@ import type {
 } from './schemas';
 
 type AcceptGroupInviteResponse = {
-  endpoint: `POST ${Endpoint.AcceptGroupInvite}`;
+  method: 'POST';
+  endpoint: Endpoint.AcceptGroupInvite;
   body: GroupMemberInfo;
 };
 
 type GroupInfoResponse = {
-  endpoint: `GET ${Endpoint.GroupInfo}`;
+  method: 'GET';
+  endpoint: Endpoint.GroupInfo;
   body: GroupInfo;
 };
 
 type GroupInvitesResponse = {
-  endpoint: `GET ${Endpoint.GroupInvites}`;
+  method: 'GET';
+  endpoint: Endpoint.GroupInvites;
   body: InvitedGroupInfo[];
 };
 
 type GroupMemberResponse = {
-  endpoint: `GET ${Endpoint.GroupMember}`;
+  method: 'GET';
+  endpoint: Endpoint.GroupMember;
   body: GroupMemberInfo;
 };
 
 type JoinedGroupsResponse = {
-  endpoint: `GET ${Endpoint.JoinedGroups}`;
+  method: 'GET';
+  endpoint: Endpoint.JoinedGroups;
   body: JoinedGroupInfo[];
 };
 
 type ServerInfoResponse = {
-  endpoint: `GET ${Endpoint.ServerInfo}`;
+  method: 'GET';
+  endpoint: Endpoint.ServerInfo;
   body: ServerInfo;
 };
 
 type ServerConnectionDetailsResponse = {
-  endpoint: `POST ${Endpoint.ServerConsole}`;
+  method: 'POST';
+  endpoint: Endpoint.ServerConsole;
   body: ServerConnectionInfo;
 };
 
@@ -52,4 +59,8 @@ type ApiResponseUnion =
   | ServerConnectionDetailsResponse
   | ServerInfoResponse;
 
-export type ApiResponse<T> = Extract<ApiResponseUnion, { endpoint: T }>;
+type ApiResponseBody<TMethod, TEndpoint> = Extract<ApiResponseUnion, { method: TMethod; endpoint: TEndpoint }>['body'];
+
+export type ApiResponse<TMethod, TEndpoint> = Omit<Response, 'json'> & {
+  json: () => Promise<ApiResponseBody<TMethod, TEndpoint>>;
+};
