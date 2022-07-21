@@ -12,6 +12,7 @@ type Role = {
 type Servers = Record<number, Server>;
 
 interface Events {
+  'server-add': (server: Server) => void;
   update: (group: Group) => void;
 }
 
@@ -271,10 +272,14 @@ export class Group extends TypedEmitter<Events> {
       return;
     }
 
+    const managedServer = new Server(this, server);
+
     this.servers = {
       ...this.servers,
-      [serverId]: new Server(this, server)
+      [serverId]: managedServer
     } as Servers;
+
+    this.emit('server-add', managedServer);
 
     this.manageServerConnection(server);
   }
