@@ -7,12 +7,14 @@
 - [`Config.includedGroups`](#configincludedgroups)
 - [`Config.logVerbosity`](#configlogverbosity)
 - [`Config.maxWorkerConcurrency`](#configmaxworkerconcurrency)
+- [`Config.password`](#configpassword)
 - [`Config.restBaseUrl`](#configrestbaseurl)
 - [`Config.scope`](#configscope)
 - [`Config.serverConnectionRecoveryDelay`](#configserverconnectionrecoverydelay)
 - [`Config.serverHeartbeatTimeout`](#configserverheartbeattimeout)
 - [`Config.supportedServerFleets`](#configsupportedserverfleets)
 - [`Config.tokenUrl`](#configtokenurl)
+- [`Config.username`](#configusername)
 - [`Config.webSocketMigrationHandoverPeriod`](#configwebsocketmigrationhandoverperiod)
 - [`Config.webSocketMigrationInterval`](#configwebsocketmigrationinterval)
 - [`Config.webSocketMigrationRetryDelay`](#configwebsocketmigrationretrydelay)
@@ -27,19 +29,16 @@
 The `Config` object is used to configure a [`Client`](./Client.md).
 
 ```ts
-interface Config {
-  clientId: string;
-  clientSecret: string;
+interface CommonConfig {
   console?: Pick<Console, 'error' | 'warn' | 'info' | 'debug'>;
   excludedGroups?: number[];
   includedGroups?: number[];
   logVerbosity?: Verbosity;
   maxWorkerConcurrency?: number;
   restBaseUrl?: string;
-  scope: Scope[];
   serverConnectionRecoveryDelay?: number;
   serverHeartbeatTimeout?: number;
-  supportedServerFleets: 'att-release' | 'att-quest';
+  supportedServerFleets?: 'att-release' | 'att-quest';
   tokenUrl?: string;
   webSocketMigrationHandoverPeriod?: number;
   webSocketMigrationInterval?: number;
@@ -52,19 +51,34 @@ interface Config {
   webSocketUrl?: string;
   xApiKey?: string;
 }
+
+interface BotConfig extends CommonConfig {
+  clientId: string;
+  clientSecret: string;
+  scope: Scope[];
+}
+
+interface UserConfig extends CommonConfig {
+  username: string;
+  password: string;
+}
+
+type Config = BotConfig | UserConfig;
 ```
 
 ## `Config.clientId`
 
-- `<string>` The bot account's client ID provided to you by Alta.
-- :warning: This configuration option is **required**.
+- `<string>` A bot account's client ID provided to you by Alta.
+- :warning: This configuration option is **required** for bot automation.
+- :warning: This configuration option and [`Config.username`](#configusername) are **mutually exclusive**.
 
 This option sets your [`Client`](./Client.md)'s client ID.
 
 ## `Config.clientSecret`
 
-- `<string>` The bot account's client secret provided to you by Alta.
-- :warning: This configuration option is **required**.
+- `<string>` A bot account's client secret provided to you by Alta.
+- :warning: This configuration option is **required** for bot automation.
+- :warning: This configuration option and [`Config.password`](#configpassword) are **mutually exclusive**.
 - :warning: Never share your client secret with anyone.
 
 This option sets your [`Client`](./Client.md)'s client secret.
@@ -126,6 +140,17 @@ This option changes logging behaviour. The higher `logVerbosity`, the more verbo
 This option configures how many workers are available to handle requests made to Alta services.
 
 :warning: It's not recommended that you change this option. It's been proven that setting this too high will overwhelm Alta services and destabilise your [`Client`](./Client.md)'s connection.
+
+## `Config.password`
+
+- `<string>` An Alta account's password or its SHA512 hexadecimal hash (**preferred**).
+- :warning: This configuration option is **required** when not using [`Config.clientSecret`](#configclientsecret).
+- :warning: This configuration option and [`Config.clientSecret`](#configclientsecret) are **mutually exclusive**.
+- :warning: Never share your account password with anyone.
+
+This option allows [`Client`](./Client.md) to impersonate a user account when interacting with Alta services.
+
+:warning: Most bot automation features are **disabled** when configuring user credentials.
 
 ## `Config.restBaseUrl`
 
@@ -201,6 +226,16 @@ client.on('connect', connection => {
 This option allows you to change where [`Client`](./Client.md) retrieves its JWT.
 
 :warning: It's not recommended that you change this option.
+
+## `Config.username`
+
+- `<string>` An Alta account's username.
+- :warning: This configuration option is **required** when not using [`Config.clientId`](#configclientid).
+- :warning: This configuration option and [`Config.clientId`](#configclientid) are **mutually exclusive**.
+
+This option allows [`Client`](./Client.md) to impersonate a user account when interacting with Alta services.
+
+:warning: Most bot automation features are **disabled** when configuring user credentials.
 
 ## `Config.webSocketMigrationHandoverPeriod`
 
