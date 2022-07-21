@@ -9,6 +9,7 @@ type Player = {
 };
 
 interface Events {
+  connect: (serverConnection: ServerConnection) => void;
   update: (server: Server) => void;
 }
 
