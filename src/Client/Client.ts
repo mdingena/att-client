@@ -8,9 +8,8 @@ import { Api, DecodedToken, Endpoint } from '../Api';
 import { Group } from '../Group';
 import { Logger, Verbosity } from '../Logger';
 import { Subscriptions } from '../Subscriptions';
-import { DEFAULTS, MAX_WORKER_CONCURRENCY_WARNING } from '../constants';
 import { Workers } from '../Workers';
-import pkg from '../../package.json';
+import { DEFAULTS, MAX_WORKER_CONCURRENCY_WARNING, PACKAGE } from '../constants';
 
 interface Events {
   connect: (serverConnection: ServerConnection) => void;
@@ -144,7 +143,7 @@ export class Client extends TypedEmitter<Events> {
     /* Initialise internals. */
     this.api = new Api(this);
     this.groups = {};
-    this.name = `${pkg.name} v${pkg.version}`;
+    this.name = `${PACKAGE.name} v${PACKAGE.version}`;
     this.readyState = ReadyState.Stopped;
     this.subscriptions = new Subscriptions(this);
   }

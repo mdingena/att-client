@@ -1,6 +1,9 @@
 import type { ServerFleet } from './Api';
 import type { Config } from './Client/Config';
 import { Verbosity } from './Logger';
+import packageJson from '../package.json';
+
+export const PACKAGE = packageJson;
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
