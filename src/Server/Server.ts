@@ -50,7 +50,7 @@ export class Server extends TypedEmitter<Events> {
 
     const serverConnectionInfo = await this.group.client.api.getServerConnectionDetails(this.id);
 
-    if (typeof serverConnectionInfo === 'undefined') {
+    if ('ok' in serverConnectionInfo) {
       this.group.client.logger.error(`Couldn't get connection details for server ${this.id} (${this.name}).`);
       return;
     }
