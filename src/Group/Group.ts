@@ -230,7 +230,11 @@ export class Group extends TypedEmitter<Events> {
     const hasOnlinePlayers = status.online_players.length > 0;
 
     if (server.status === 'disconnected' && mayConnect && isServerOnline && hasOnlinePlayers) {
-      await server.connect();
+      try {
+        await server.connect();
+      } catch (error) {
+        this.client.logger.error(`Couldn't connect to server ${serverId}: ${(error as Error).message}`);
+      }
     } else if (server.status !== 'disconnected' && (!mayConnect || !isServerOnline)) {
       server.disconnect();
     }
