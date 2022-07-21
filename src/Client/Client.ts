@@ -1,5 +1,6 @@
 import type { GroupInfo, GroupMemberInfo } from '../Api/schemas';
 import type { Config } from './Config';
+import type { Server } from '../Server';
 import type { ServerConnection } from '../ServerConnection';
 import { createHash } from 'node:crypto';
 import { TypedEmitter } from 'tiny-typed-emitter';
@@ -457,5 +458,51 @@ export class Client extends TypedEmitter<Events> {
 
       return hashedPassword;
     }
+  }
+
+  /**
+   * Connects to a server and promises a server connection. This is particularly
+   * useful for semi-automatic bots using User credentials instead of Bot
+   * credentials. This method can throw on various exceptions—such as the server
+   * being offline—and should probably be wrapped in a try/catch block.
+   *
+   * @example
+   * try {
+   *   const connection = await client.openUnmanagedServerConnection(serverId);
+   *
+   *   connection.subscribe('PlayerJoined', message => {
+   *     const { id, username } = message.data.user;
+   *     connection.send(`player message ${id} "Greetings, ${username}!" 5`);
+   *   });
+   * } catch (error) {
+   *   // your error handling
+   * }
+   */
+  async openUnmanagedServerConnection(serverId: number) {
+    if (this.readyState !== ReadyState.Ready) throw new Error('Client is not ready yet.');
+
+    const decodedToken = this.decodedToken ?? (await this.refreshTokens());
+    const userId = 'client_sub' in decodedToken ? decodedToken.client_sub : decodedToken.UserId;
+    const serverInfo = await this.api.getServerInfo(serverId);
+    const groupId = serverInfo.group_id;
+    const [groupInfo, memberInfo] = await Promise.all([
+      this.api.getGroupInfo(groupId),
+      this.api.getGroupMember(groupId, userId)
+    ]);
+
+    const group = new Group(this, groupInfo, memberInfo);
+    const server = await new Promise<Server>(resolve => {
+      group.on('server-add', server => {
+        if (server.id === serverId) resolve(server);
+      });
+    });
+
+    const connection = new Promise<ServerConnection>(resolve => {
+      server.once('connect', connection => resolve(connection));
+    });
+
+    await server.connect();
+
+    return connection;
   }
 }
