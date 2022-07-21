@@ -1,8 +1,5 @@
-import type { Api } from '../Api';
 import type { GroupInfo, GroupMemberInfo, ServerInfo } from '../Api/schemas';
 import type { Client } from '../Client';
-import type { Logger } from '../Logger';
-import type { Subscriptions } from '../Subscriptions';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { Server } from '../Server';
 
@@ -15,6 +12,7 @@ type Role = {
 type Servers = Record<number, Server>;
 
 interface Events {
+  'server-add': (server: Server) => void;
   update: (group: Group) => void;
 }
 
@@ -27,17 +25,11 @@ export class Group extends TypedEmitter<Events> {
   roles: Role[];
   servers: Servers;
 
-  private api: Api;
-  private logger: Logger;
-  private subscriptions: Subscriptions;
   private userId: number;
 
   constructor(client: Client, group: GroupInfo, member: GroupMemberInfo) {
     super();
 
-    this.logger = client.logger;
-
-    this.api = client.api;
     this.client = client;
     this.description = group.description ?? '';
     this.id = group.id;
@@ -45,11 +37,10 @@ export class Group extends TypedEmitter<Events> {
     this.permissions = this.getPermissions(group, member);
     this.roles = [];
     this.servers = {};
-    this.subscriptions = client.subscriptions;
     this.userId = member.user_id;
 
     if (!this.permissions.includes('Console')) {
-      this.logger.warn(
+      this.client.logger.warn(
         `This client does not have 'Console' permissions for group ${this.id} (${this.name}).`,
         JSON.stringify(this.permissions)
       );
@@ -68,12 +59,12 @@ export class Group extends TypedEmitter<Events> {
       /**
        * Subscribe to group updates, such as changes to servers, roles and permissions.
        */
-      this.subscriptions.subscribe('group-update', this.id.toString(), async message => {
+      this.client.subscriptions.subscribe('group-update', this.id.toString(), async message => {
         const group = message.content;
-        const member = await this.api.getGroupMember(this.id, this.userId.toString());
+        const member = await this.client.api.getGroupMember(this.id, this.userId.toString());
 
         if (typeof member === 'undefined') {
-          this.logger.error(`Couldn't find group member info for group ${group.id} (${this.name}).`);
+          this.client.logger.error(`Couldn't find group member info for group ${group.id} (${this.name}).`);
           return;
         }
 
@@ -83,16 +74,16 @@ export class Group extends TypedEmitter<Events> {
       /**
        * Subscribe to group member changes, such as assigned role and permissions.
        */
-      this.subscriptions.subscribe('group-member-update', this.id.toString(), async message => {
+      this.client.subscriptions.subscribe('group-member-update', this.id.toString(), async message => {
         const member = message.content;
 
         if (member.user_id !== this.userId) return;
 
-        this.logger.info(`Membership updated for group ${this.id}.`);
-        const group = await this.api.getGroupInfo(this.id);
+        this.client.logger.info(`Membership updated for group ${this.id}.`);
+        const group = await this.client.api.getGroupInfo(this.id);
 
         if (typeof group === 'undefined') {
-          this.logger.error(`Couldn't get info for group ${this.id} (${this.name}).`);
+          this.client.logger.error(`Couldn't get info for group ${this.id} (${this.name}).`);
           return;
         }
 
@@ -103,10 +94,10 @@ export class Group extends TypedEmitter<Events> {
        * Subscribe to server status changes, such as number of players and online or
        * offline state.
        */
-      this.subscriptions.subscribe('group-server-status', this.id.toString(), async message => {
+      this.client.subscriptions.subscribe('group-server-status', this.id.toString(), async message => {
         const status = message.content;
 
-        this.logger.debug(`Status updated for server ${status.id} (${status.name}).`, JSON.stringify(status));
+        this.client.logger.debug(`Status updated for server ${status.id} (${status.name}).`, JSON.stringify(status));
         this.manageServerConnection(status);
       }),
 
@@ -118,9 +109,9 @@ export class Group extends TypedEmitter<Events> {
        * it's possible that in the future any single group can have more than one
        * server that may be created by players themselves.
        */
-      this.subscriptions.subscribe('group-server-create', this.id.toString(), _unstableMessage => {
+      this.client.subscriptions.subscribe('group-server-create', this.id.toString(), _unstableMessage => {
         /* ⚠️ This code is untested because I can't create new servers. */
-        this.logger.warn(
+        this.client.logger.warn(
           'Client is running untested group-server-create code in Group.ts.',
           JSON.stringify(_unstableMessage)
         );
@@ -138,9 +129,9 @@ export class Group extends TypedEmitter<Events> {
        * it's possible that in the future any single group can have more than one
        * server that may be deleted by players themselves.
        */
-      this.subscriptions.subscribe('group-server-delete', this.id.toString(), _unstableMessage => {
+      this.client.subscriptions.subscribe('group-server-delete', this.id.toString(), _unstableMessage => {
         /* ⚠️ This code is untested because I can't delete servers. */
-        this.logger.warn(
+        this.client.logger.warn(
           'Client is running untested group-server-delete code in Group.ts.',
           JSON.stringify(_unstableMessage)
         );
@@ -165,11 +156,11 @@ export class Group extends TypedEmitter<Events> {
    * Updates a server with new server info.
    */
   private async updateServer(serverId: number) {
-    this.logger.debug(`Updating info for server ${serverId}.`);
-    const status = await this.api.getServerInfo(serverId);
+    this.client.logger.debug(`Updating info for server ${serverId}.`);
+    const status = await this.client.api.getServerInfo(serverId);
 
     if (typeof status === 'undefined') {
-      this.logger.error(`Couldn't get status for server ${serverId} (${this.name}).`);
+      this.client.logger.error(`Couldn't get status for server ${serverId} (${this.name}).`);
       return;
     }
 
@@ -199,9 +190,9 @@ export class Group extends TypedEmitter<Events> {
     this.permissions = this.getPermissions(group, member);
 
     if (!previousPermissions.includes('Console') && this.permissions.includes('Console')) {
-      this.logger.info(`Client gained console access to servers in group ${this.id} (${this.name}).`);
+      this.client.logger.info(`Client gained console access to servers in group ${this.id} (${this.name}).`);
     } else if (previousPermissions.includes('Console') && !this.permissions.includes('Console')) {
-      this.logger.info(`Client lost console access to servers in group ${this.id} (${this.name}).`);
+      this.client.logger.info(`Client lost console access to servers in group ${this.id} (${this.name}).`);
     }
 
     await this.updateServers();
@@ -227,7 +218,7 @@ export class Group extends TypedEmitter<Events> {
     const server = this.servers[serverId];
 
     if (typeof server === 'undefined') {
-      this.logger.error(`Server ${serverId} not found in group ${this.id} (${this.name}).`);
+      this.client.logger.error(`Server ${serverId} not found in group ${this.id} (${this.name}).`);
       return;
     }
 
@@ -240,7 +231,11 @@ export class Group extends TypedEmitter<Events> {
     const hasOnlinePlayers = status.online_players.length > 0;
 
     if (server.status === 'disconnected' && mayConnect && isServerOnline && hasOnlinePlayers) {
-      await server.connect();
+      try {
+        await server.connect();
+      } catch (error) {
+        this.client.logger.error(`Couldn't connect to server ${serverId}: ${(error as Error).message}`);
+      }
     } else if (server.status !== 'disconnected' && (!mayConnect || !isServerOnline)) {
       server.disconnect();
     }
@@ -252,7 +247,7 @@ export class Group extends TypedEmitter<Events> {
    * Starts managing all servers listed in a given group info.
    */
   private addServers(group: GroupInfo) {
-    this.logger.debug(`Adding all servers for group ${this.id} (${this.name}).`);
+    this.client.logger.debug(`Adding all servers for group ${this.id} (${this.name}).`);
 
     for (const server of group.servers ?? []) {
       this.addServer(server.id);
@@ -263,24 +258,28 @@ export class Group extends TypedEmitter<Events> {
    * Starts managing the given server.
    */
   private async addServer(serverId: number) {
-    this.logger.debug(`Adding server ${serverId} (${this.name}).`);
+    this.client.logger.debug(`Adding server ${serverId} (${this.name}).`);
 
     if (Object.keys(this.servers).map(Number).includes(serverId)) {
-      this.logger.error(`Can't add server ${serverId} (${this.name}) more than once.`);
+      this.client.logger.error(`Can't add server ${serverId} (${this.name}) more than once.`);
       return;
     }
 
-    const server = await this.api.getServerInfo(serverId);
+    const server = await this.client.api.getServerInfo(serverId);
 
     if (typeof server === 'undefined') {
-      this.logger.error(`Couldn't get info for server ${serverId} (${this.name}).`);
+      this.client.logger.error(`Couldn't get info for server ${serverId} (${this.name}).`);
       return;
     }
+
+    const managedServer = new Server(this, server);
 
     this.servers = {
       ...this.servers,
-      [serverId]: new Server(this, server)
+      [serverId]: managedServer
     } as Servers;
+
+    this.emit('server-add', managedServer);
 
     this.manageServerConnection(server);
   }
@@ -289,7 +288,7 @@ export class Group extends TypedEmitter<Events> {
    * Removes all managed servers from this group.
    */
   private removeServers() {
-    this.logger.debug(`Removing all servers from group ${this.id} (${this.name}).`);
+    this.client.logger.debug(`Removing all servers from group ${this.id} (${this.name}).`);
 
     for (const server of Object.values(this.servers)) {
       this.removeServer(server.id);
@@ -300,12 +299,12 @@ export class Group extends TypedEmitter<Events> {
    * Removes the given managed server from this group.
    */
   private removeServer(serverId: number) {
-    this.logger.debug(`Removing server ${serverId} (${this.name}).`);
+    this.client.logger.debug(`Removing server ${serverId} (${this.name}).`);
 
     const server = this.servers[serverId];
 
     if (typeof server === 'undefined') {
-      this.logger.error(`Can't remove an unmanaged server with ID ${serverId} (${this.name}).`);
+      this.client.logger.error(`Can't remove an unmanaged server with ID ${serverId} (${this.name}).`);
       return;
     }
 
@@ -320,11 +319,11 @@ export class Group extends TypedEmitter<Events> {
     this.removeServers();
 
     await Promise.all([
-      this.subscriptions.unsubscribe('group-update', this.id.toString()),
-      this.subscriptions.unsubscribe('group-server-create', this.id.toString()),
-      this.subscriptions.unsubscribe('group-server-delete', this.id.toString()),
-      this.subscriptions.unsubscribe('group-server-status', this.id.toString()),
-      this.subscriptions.unsubscribe('group-member-update', this.id.toString())
+      this.client.subscriptions.unsubscribe('group-update', this.id.toString()),
+      this.client.subscriptions.unsubscribe('group-server-create', this.id.toString()),
+      this.client.subscriptions.unsubscribe('group-server-delete', this.id.toString()),
+      this.client.subscriptions.unsubscribe('group-server-status', this.id.toString()),
+      this.client.subscriptions.unsubscribe('group-member-update', this.id.toString())
     ]);
   }
 }

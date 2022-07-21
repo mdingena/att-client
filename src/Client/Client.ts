@@ -1,14 +1,16 @@
 import type { GroupInfo, GroupMemberInfo } from '../Api/schemas';
 import type { Config } from './Config';
+import type { Server } from '../Server';
 import type { ServerConnection } from '../ServerConnection';
+import { createHash } from 'node:crypto';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import jwtDecode from 'jwt-decode';
-import { Api, DecodedToken } from '../Api';
+import { Api, DecodedToken, Endpoint } from '../Api';
 import { Group } from '../Group';
-import { Logger } from '../Logger';
+import { Logger, Verbosity } from '../Logger';
 import { Subscriptions } from '../Subscriptions';
-import { DEFAULTS, MAX_WORKER_CONCURRENCY_WARNING } from '../constants';
 import { Workers } from '../Workers';
+import { DEFAULTS, MAX_WORKER_CONCURRENCY_WARNING, PACKAGE } from '../constants';
 
 interface Events {
   connect: (serverConnection: ServerConnection) => void;
@@ -17,16 +19,23 @@ interface Events {
 
 type Groups = Record<number, Group>;
 
+enum ReadyState {
+  Stopped,
+  Starting,
+  Ready
+}
+
 export class Client extends TypedEmitter<Events> {
   accessToken?: string;
   api: Api;
   config: Required<Config>;
   groups: Groups;
   logger: Logger;
+  name: string;
   subscriptions: Subscriptions;
 
   private decodedToken?: DecodedToken;
-  private initialised: boolean;
+  private readyState: ReadyState;
   private refreshTokensDelay?: NodeJS.Timeout;
 
   constructor(config: Config) {
@@ -40,6 +49,10 @@ export class Client extends TypedEmitter<Events> {
       configuredConsole.warn(
         "Using Warning log verbosity. You will only see Errors and Warnings. If you want to see more verbose logs, create your client with a higher 'logVerbosity'."
       );
+    } else if (config.logVerbosity >= Verbosity.Debug) {
+      configuredConsole.warn(
+        'You are using Debug log verbosity. This is not recommended for production environments as sensitive information like configured credentials will appear in your logs. Please consider using Info log verbosity or lower for production.'
+      );
     }
 
     const configuredLogVerbosity = config.logVerbosity ?? DEFAULTS.logVerbosity;
@@ -49,10 +62,22 @@ export class Client extends TypedEmitter<Events> {
     this.logger.info('Configuring client.');
 
     /* Validate required configuration. */
-    const { clientId, clientSecret, scope } = config;
-
-    if ([typeof clientId, typeof clientSecret, typeof scope].includes('undefined')) {
-      this.logger.error("Cannot create client without 'clientId', 'clientSecret', and 'scope'.");
+    if ('clientId' in config) {
+      if (
+        typeof config.clientId === 'undefined' ||
+        typeof config.clientSecret === 'undefined' ||
+        typeof config.scope === 'undefined'
+      ) {
+        this.logger.error("Cannot create bot client without 'clientId', 'clientSecret', and 'scope'.");
+        throw new Error('Invalid client configuration.');
+      }
+    } else if ('username' in config) {
+      if (typeof config.username === 'undefined' || typeof config.password === 'undefined') {
+        this.logger.error("Cannot create user client without 'username' and 'password'.");
+        throw new Error('Invalid client configuration.');
+      }
+    } else {
+      this.logger.error('Cannot create client without either bot credentials or user credentials.');
       throw new Error('Invalid client configuration.');
     }
 
@@ -76,9 +101,20 @@ export class Client extends TypedEmitter<Events> {
     }
 
     /* Save configuration. */
+    const credentials =
+      'clientId' in config
+        ? {
+            clientId: config.clientId,
+            clientSecret: config.clientSecret,
+            scope: config.scope
+          }
+        : {
+            username: config.username,
+            password: config.password
+          };
+
     this.config = {
-      clientId: config.clientId,
-      clientSecret: config.clientSecret,
+      ...credentials,
       console: configuredConsole,
       excludedGroups:
         config.excludedGroups && (typeof config.includedGroups === 'undefined' || config.includedGroups.length === 0)
@@ -87,7 +123,6 @@ export class Client extends TypedEmitter<Events> {
       includedGroups: config.includedGroups ?? DEFAULTS.includedGroups,
       logVerbosity: configuredLogVerbosity,
       maxWorkerConcurrency: config.maxWorkerConcurrency ?? DEFAULTS.maxWorkerConcurrency,
-      scope: config.scope,
       restBaseUrl: config.restBaseUrl ?? DEFAULTS.restBaseUrl,
       serverConnectionRecoveryDelay: config.serverConnectionRecoveryDelay ?? DEFAULTS.serverConnectionRecoveryDelay,
       serverHeartbeatTimeout: config.serverHeartbeatTimeout ?? DEFAULTS.serverHeartbeatTimeout,
@@ -109,7 +144,8 @@ export class Client extends TypedEmitter<Events> {
     /* Initialise internals. */
     this.api = new Api(this);
     this.groups = {};
-    this.initialised = false;
+    this.name = `${PACKAGE.name} v${PACKAGE.version}`;
+    this.readyState = ReadyState.Stopped;
     this.subscriptions = new Subscriptions(this);
   }
 
@@ -119,111 +155,121 @@ export class Client extends TypedEmitter<Events> {
    * servers.
    */
   async start() {
-    if (this.initialised) {
+    if (this.readyState !== ReadyState.Stopped) {
       this.logger.error('This client is already initialised.');
       return;
     }
 
-    this.initialised = true;
+    this.readyState = ReadyState.Starting;
     this.logger.info('Initialising client.');
 
     /* Configure access token and decoded token. */
     const decodedToken = await this.refreshTokens();
 
-    const userId = decodedToken.client_sub;
+    /* Handle bot automation. */
+    if ('client_sub' in decodedToken) {
+      const userId = decodedToken.client_sub;
 
-    /* Initialise subscriptions. */
-    this.logger.info('Subscribing to events.');
-    await this.subscriptions.init();
+      /* Initialise subscriptions. */
+      this.logger.info('Subscribing to events.');
+      await this.subscriptions.init();
 
-    try {
-      /* Subscribe to account messages. */
-      this.logger.debug('Subscribing to account messages.');
+      try {
+        /* Subscribe to account messages. */
+        this.logger.debug('Subscribing to account messages.');
 
-      await Promise.allSettled([
-        /* Subscribe to and handle server group invitation message. */
-        this.subscriptions.subscribe('me-group-invite-create', userId, message => {
-          const { id, name } = message.content;
+        await Promise.allSettled([
+          /* Subscribe to and handle server group invitation message. */
+          this.subscriptions.subscribe('me-group-invite-create', userId, message => {
+            const { id, name } = message.content;
 
-          this.logger.info(`Accepting invite to group ${id} (${name})`);
-          this.api.acceptGroupInvite(id);
-        }),
+            this.logger.info(`Accepting invite to group ${id} (${name})`);
+            this.api.acceptGroupInvite(id);
+          }),
 
-        /* Subscribe to and handle server group joined message. */
-        this.subscriptions.subscribe('me-group-create', userId, async message => {
-          /*
-           * The group info from this message is missing information about
-           * this group's servers and roles. So we'll use the group ID from
-           * this message to fetch more complete information. We'll also
-           * need to get this client's group membership details to determine
-           * group permissions.
-           */
-          const groupId = message.content.id;
-          const groupName = message.content.name;
+          /* Subscribe to and handle server group joined message. */
+          this.subscriptions.subscribe('me-group-create', userId, async message => {
+            /*
+             * The group info from this message is missing information about
+             * this group's servers and roles. So we'll use the group ID from
+             * this message to fetch more complete information. We'll also
+             * need to get this client's group membership details to determine
+             * group permissions.
+             */
+            const groupId = message.content.id;
+            const groupName = message.content.name;
 
-          this.logger.info(`Client was added to group ${groupId} (${groupName}).`);
+            this.logger.info(`Client was added to group ${groupId} (${groupName}).`);
 
-          const group = await this.api.getGroupInfo(groupId);
-          const member = await this.api.getGroupMember(groupId, userId);
+            const [group, member] = await Promise.all([
+              this.api.getGroupInfo(groupId),
+              this.api.getGroupMember(groupId, userId)
+            ]);
 
-          if (typeof group === 'undefined') {
-            this.logger.error(`Couldn't get info for group ${groupId} (${groupName}).`);
-            return;
-          }
+            if (typeof group === 'undefined') {
+              this.logger.error(`Couldn't get info for group ${groupId} (${groupName}).`);
+              return;
+            }
 
-          if (typeof member === 'undefined') {
-            this.logger.error(`Couldn't find group member info for group ${group.id} (${groupName}).`);
-            return;
-          }
+            if (typeof member === 'undefined') {
+              this.logger.error(`Couldn't find group member info for group ${group.id} (${groupName}).`);
+              return;
+            }
 
-          /* Create a new managed group. */
-          this.addGroup(group, member);
-        }),
+            /* Create a new managed group. */
+            this.addGroup(group, member);
+          }),
 
-        /* Subscribe to and handle server group left message. */
-        this.subscriptions.subscribe('me-group-delete', userId, message => {
-          const groupId = message.content.group.id;
-          const groupName = message.content.group.name;
+          /* Subscribe to and handle server group left message. */
+          this.subscriptions.subscribe('me-group-delete', userId, message => {
+            const groupId = message.content.group.id;
+            const groupName = message.content.group.name;
 
-          this.logger.info(`Client was removed from group ${groupId} (${groupName}).`);
-          this.removeGroup(groupId);
-        })
-      ]);
+            this.logger.info(`Client was removed from group ${groupId} (${groupName}).`);
+            this.removeGroup(groupId);
+          })
+        ]);
 
-      /* Manage all joined groups. */
-      const joinedGroups = (await this.api.getJoinedGroups()) ?? [];
+        /* Manage all joined groups. */
+        const joinedGroups = await this.api.getJoinedGroups();
 
-      if (joinedGroups.length > 0) {
-        this.logger.info(`Managing ${joinedGroups.length} group${joinedGroups.length > 1 ? 's' : ''}.`);
+        if (joinedGroups.length > 0) {
+          this.logger.info(`Managing ${joinedGroups.length} group${joinedGroups.length > 1 ? 's' : ''}.`);
 
-        const tasks = joinedGroups.map(
-          ({ group, member }) =>
-            () =>
-              this.addGroup(group, member)
-        );
+          const tasks = joinedGroups.map(
+            ({ group, member }) =>
+              () =>
+                this.addGroup(group, member)
+          );
 
-        const workers = new Workers(this.config.maxWorkerConcurrency);
-        await workers.do(tasks);
+          const workers = new Workers(this.config.maxWorkerConcurrency);
+          await workers.do(tasks);
+        }
+
+        /* Accept pending group invites. */
+        const invites = await this.api.getPendingGroupInvites();
+
+        if (invites.length > 0) {
+          this.logger.info(`Accepting ${invites.length} pending group invite${invites.length > 1 ? 's' : ''}.`);
+
+          const tasks = invites.map(invite => () => this.api.acceptGroupInvite(invite.id));
+
+          const workers = new Workers(this.config.maxWorkerConcurrency);
+          await workers.do(tasks);
+        }
+      } catch (error) {
+        this.logger.error((error as Error).message);
+        return;
       }
-
-      /* Accept pending group invites. */
-      const invites = (await this.api.getPendingGroupInvites()) ?? [];
-
-      if (invites.length > 0) {
-        this.logger.info(`Accepting ${invites.length} pending group invite${invites.length > 1 ? 's' : ''}.`);
-
-        const tasks = invites.map(invite => () => this.api.acceptGroupInvite(invite.id));
-
-        const workers = new Workers(this.config.maxWorkerConcurrency);
-        await workers.do(tasks);
-      }
-    } catch (error) {
-      this.logger.error((error as Error).message);
-      return;
+    } else {
+      this.logger.warn(
+        `You have configured this client with user credentials, so it will operate with most bot automation features disabled. To enable, please provide bot credentials instead.`
+      );
     }
 
-    this.logger.info('Client initialised.');
+    this.readyState = ReadyState.Ready;
     this.emit('ready');
+    this.logger.info('Client initialised.');
   }
 
   /**
@@ -253,26 +299,42 @@ export class Client extends TypedEmitter<Events> {
   private async getAccessToken(): Promise<string> {
     this.logger.info('Retrieving access token.');
 
-    const body = new URLSearchParams();
-    body.append('grant_type', 'client_credentials');
-    body.append('client_id', this.config.clientId);
-    body.append('client_secret', this.config.clientSecret);
-    body.append('scope', this.config.scope.join(' '));
+    const body =
+      'clientId' in this.config
+        ? new URLSearchParams({
+            grant_type: 'client_credentials',
+            scope: this.config.scope.join(' '),
+            client_id: this.config.clientId,
+            client_secret: this.config.clientSecret
+          })
+        : JSON.stringify({
+            username: this.config.username,
+            password_hash: this.hashPassword(this.config.password)
+          });
 
     const bodyString = body.toString();
     this.logger.debug('Created access token request payload.', bodyString);
 
-    const headers = {
-      'Host': 'accounts.townshiptale.com',
-      'Content-Type': 'application/x-www-form-urlencoded',
+    const headers = new Headers({
       'Content-Length': bodyString.length.toString(),
-      'User-Agent': this.config.clientId
-    };
-    this.logger.debug('Configured access token request headers.', JSON.stringify(headers));
+      'User-Agent': this.name
+    });
+
+    if ('clientId' in this.config) {
+      headers.append('Content-Type', 'application/x-www-form-urlencoded');
+    } else {
+      headers.append('Content-Type', 'application/json');
+      headers.append('x-api-key', this.config.xApiKey);
+    }
+
+    this.logger.debug('Configured access token request headers.', headers);
+
+    const endpoint =
+      'clientId' in this.config ? this.config.tokenUrl : `${this.config.restBaseUrl}${Endpoint.Sessions}`;
 
     try {
       this.logger.debug('Sending access token request.');
-      const response = await fetch(this.config.tokenUrl, {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers,
         body
@@ -380,5 +442,67 @@ export class Client extends TypedEmitter<Events> {
 
     await group.dispose();
     delete this.groups[groupId];
+  }
+
+  /**
+   * Hashes a password.
+   */
+  private hashPassword(password: string): string {
+    if (/^[0-9a-f]{128}$/i.test(password)) {
+      return password;
+    } else {
+      const hashedPassword = createHash('sha512').update(password).digest('hex');
+      this.logger.warn(
+        `You are using an unhashed password to configure this client. For increased security, please consider replacing any mention of your password in any of your project files with this hash of your password instead: ${hashedPassword}`
+      );
+
+      return hashedPassword;
+    }
+  }
+
+  /**
+   * Connects to a server and promises a server connection. This is particularly
+   * useful for semi-automatic bots using User credentials instead of Bot
+   * credentials. This method can throw on various exceptions—such as the server
+   * being offline—and should probably be wrapped in a try/catch block.
+   *
+   * @example
+   * try {
+   *   const connection = await client.openUnmanagedServerConnection(serverId);
+   *
+   *   connection.subscribe('PlayerJoined', message => {
+   *     const { id, username } = message.data.user;
+   *     connection.send(`player message ${id} "Greetings, ${username}!" 5`);
+   *   });
+   * } catch (error) {
+   *   // your error handling
+   * }
+   */
+  async openUnmanagedServerConnection(serverId: number) {
+    if (this.readyState !== ReadyState.Ready) throw new Error('Client is not ready yet.');
+
+    const decodedToken = this.decodedToken ?? (await this.refreshTokens());
+    const userId = 'client_sub' in decodedToken ? decodedToken.client_sub : decodedToken.UserId;
+    const serverInfo = await this.api.getServerInfo(serverId);
+    const groupId = serverInfo.group_id;
+    const [groupInfo, memberInfo] = await Promise.all([
+      this.api.getGroupInfo(groupId),
+      this.api.getGroupMember(groupId, userId)
+    ]);
+
+    const group = new Group(this, groupInfo, memberInfo);
+    const server = await new Promise<Server>(resolve => {
+      group.on('server-add', server => {
+        if (server.id === serverId) resolve(server);
+      });
+    });
+
+    const connection = new Promise<ServerConnection>(resolve => {
+      server.once('connect', connection => resolve(connection));
+    });
+
+    await server.connect();
+
+    return connection;
   }
 }

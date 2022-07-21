@@ -1,6 +1,5 @@
-import type { Api, ServerFleet, ServerInfo } from '../Api';
+import type { ServerFleet, ServerInfo } from '../Api';
 import type { Group } from '../Group';
-import type { Logger } from '../Logger';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { ServerConnection } from '../ServerConnection';
 
@@ -10,6 +9,7 @@ type Player = {
 };
 
 interface Events {
+  connect: (serverConnection: ServerConnection) => void;
   update: (server: Server) => void;
 }
 
@@ -23,16 +23,11 @@ export class Server extends TypedEmitter<Events> {
   status: 'disconnected' | 'connecting' | 'connected';
   fleet: ServerFleet;
 
-  private api: Api;
   private connection?: ServerConnection;
-  private logger: Logger;
 
   constructor(group: Group, server: ServerInfo) {
     super();
 
-    this.logger = group.client.logger;
-
-    this.api = group.client.api;
     this.description = server.description ?? '';
     this.fleet = server.fleet;
     this.group = group;
@@ -50,109 +45,98 @@ export class Server extends TypedEmitter<Events> {
    */
   async connect(): Promise<void> {
     if (typeof this.connection !== 'undefined') {
-      this.logger.error(`Can't open a second connection to server ${this.id}'s (${this.name}) console.`);
+      this.group.client.logger.error(`Can't open a second connection to server ${this.id}'s (${this.name}) console.`);
       return;
     }
 
-    const serverConnectionInfo = await this.api.getServerConnectionDetails(this.id);
+    const serverConnectionInfo = await this.group.client.api.getServerConnectionDetails(this.id);
 
-    if (typeof serverConnectionInfo === 'undefined') {
-      this.logger.error(`Couldn't get connection details for server ${this.id} (${this.name}).`);
+    if ('ok' in serverConnectionInfo) {
+      this.group.client.logger.error(`Couldn't get connection details for server ${this.id} (${this.name}).`);
       return;
     }
 
-    try {
-      await new Promise<void>((resolve, reject) => {
-        this.logger.debug(
-          `Got connection details for server ${this.id} (${this.name}).`,
-          JSON.stringify(serverConnectionInfo)
-        );
-
-        const { allowed, connection: connectionDetails, token } = serverConnectionInfo;
-
-        if (typeof connectionDetails === 'undefined') {
-          reject(
-            new Error(
-              `Console WebSocket details are missing for server ${this.id} (${this.name}). ${serverConnectionInfo.message}`
-            )
-          );
-          return;
-        }
-
-        if (typeof token === 'undefined') {
-          reject(new Error(`Console WebSocket token is missing for server ${this.id} (${this.name}).`));
-          return;
-        }
-
-        if (!allowed) {
-          reject(
-            new Error(
-              `This client is not allowed to use server ${this.id}'s (${this.name}) console. Check that the bot account for this client was granted "Console" permissions.`
-            )
-          );
-          return;
-        }
-
-        const { address, websocket_port: port } = connectionDetails;
-
-        const that = this;
-
-        function handleError(this: ServerConnection, error: Error) {
-          that.logger.error(`Error on console connection on server ${that.id} (${that.name}).`, error.message);
-
-          /**
-           * If errors happen before the WebSocket connection is opened, it's likely
-           * that the WebSocket won't open anymore. In this case we want to reject
-           * so that we can trigger a recovery.
-           *
-           * In other cases, errors will happen during a connection. If that results
-           * in the WebSocket closing, we can handle this in the onClose handler,
-           * because supposedly not all errors result in a disconnect.
-           */
-          if (that.status !== 'connected') {
-            reject(error);
-          }
-        }
-
-        function handleOpen(this: ServerConnection) {
-          that.logger.info(`Console connection opened on server ${that.id} (${that.name}).`);
-          that.status = 'connected';
-          that.group.client.emit('connect', this);
-          resolve();
-        }
-
-        async function handleClose(this: ServerConnection, code?: number, reason?: Buffer) {
-          if (code === 1000) {
-            that.disconnect();
-          } else {
-            /* Reconnect console connection when closed unexpectedly. */
-            that.logger.info(
-              `Console connection closed on server ${that.id} (${that.name}).`,
-              code,
-              reason?.toString()
-            );
-
-            await that.reconnect();
-          }
-        }
-
-        this.status = 'connecting';
-
-        const connection = new ServerConnection(this, address, port, token);
-
-        connection.on('error', handleError.bind(connection));
-        connection.once('close', handleClose.bind(connection));
-        connection.once('open', handleOpen.bind(connection));
-
-        this.connection = connection;
-      });
-    } catch (error) {
-      this.logger.error(
-        `Something went wrong opening a console connection to server ${this.name}: ${(error as Error).message}`
+    await new Promise<void>(resolve => {
+      this.group.client.logger.debug(
+        `Got connection details for server ${this.id} (${this.name}).`,
+        JSON.stringify(serverConnectionInfo)
       );
 
-      await this.reconnect();
-    }
+      const { allowed, connection: connectionDetails, token } = serverConnectionInfo;
+
+      if (typeof connectionDetails === 'undefined') {
+        throw new Error(
+          `Console WebSocket details are missing for server ${this.id} (${this.name}). ${serverConnectionInfo.message}`
+        );
+      }
+
+      if (typeof token === 'undefined') {
+        throw new Error(`Console WebSocket token is missing for server ${this.id} (${this.name}).`);
+      }
+
+      if (!allowed) {
+        throw new Error(
+          `This client is not allowed to use server ${this.id}'s (${this.name}) console. Check that the bot account for this client was granted "Console" permissions.`
+        );
+      }
+
+      const { address, websocket_port: port } = connectionDetails;
+
+      const that = this;
+
+      function handleError(this: ServerConnection, error: Error) {
+        that.group.client.logger.error(
+          `Error on console connection on server ${that.id} (${that.name}).`,
+          error.message
+        );
+
+        /**
+         * If errors happen before the WebSocket connection is opened, it's likely
+         * that the WebSocket won't open anymore. In this case we want to reject
+         * the pending Server.connect() promise.
+         *
+         * In other cases, errors will happen during a connection. If that results
+         * in the WebSocket closing, we can handle this in the onClose handler,
+         * because supposedly not all errors result in a disconnect.
+         */
+        if (that.status !== 'connected') {
+          throw error;
+        }
+      }
+
+      function handleOpen(this: ServerConnection) {
+        that.group.client.logger.info(`Console connection opened on server ${that.id} (${that.name}).`);
+        that.status = 'connected';
+        that.emit('connect', this);
+        that.group.client.emit('connect', this);
+        resolve();
+      }
+
+      async function handleClose(this: ServerConnection, code?: number, reason?: Buffer) {
+        if (code === 1000) {
+          that.disconnect();
+        } else {
+          /* Reconnect console connection when closed unexpectedly. */
+          that.group.client.logger.info(
+            `Console connection closed on server ${that.id} (${that.name}).`,
+            code,
+            reason?.toString()
+          );
+
+          await that.reconnect();
+        }
+      }
+
+      this.status = 'connecting';
+
+      const connection = new ServerConnection(this, address, port, token);
+
+      connection.on('error', handleError.bind(connection));
+      connection.once('close', handleClose.bind(connection));
+      connection.once('open', handleOpen.bind(connection));
+
+      this.connection = connection;
+    });
   }
 
   /**
@@ -161,7 +145,7 @@ export class Server extends TypedEmitter<Events> {
   disconnect() {
     if (typeof this.connection === 'undefined') return;
 
-    this.logger.info(`Closing console connection to server ${this.id} (${this.name}).`);
+    this.group.client.logger.info(`Closing console connection to server ${this.id} (${this.name}).`);
     this.connection.dispose();
     delete this.connection;
     this.status = 'disconnected';
@@ -175,7 +159,7 @@ export class Server extends TypedEmitter<Events> {
 
     this.disconnect();
 
-    this.logger.info(
+    this.group.client.logger.info(
       `Reopening console connection to server ${this.id} (${this.name}) in ${this.group.client.config.serverConnectionRecoveryDelay} ms.`
     );
 
