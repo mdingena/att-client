@@ -19,6 +19,12 @@ interface Events {
 
 type Groups = Record<number, Group>;
 
+enum ReadyState {
+  Stopped,
+  Starting,
+  Ready
+}
+
 export class Client extends TypedEmitter<Events> {
   accessToken?: string;
   api: Api;
@@ -29,7 +35,7 @@ export class Client extends TypedEmitter<Events> {
   subscriptions: Subscriptions;
 
   private decodedToken?: DecodedToken;
-  private initialised: boolean;
+  private readyState: ReadyState;
   private refreshTokensDelay?: NodeJS.Timeout;
 
   constructor(config: Config) {
@@ -138,8 +144,8 @@ export class Client extends TypedEmitter<Events> {
     /* Initialise internals. */
     this.api = new Api(this);
     this.groups = {};
-    this.initialised = false;
     this.name = `${pkg.name} v${pkg.version}`;
+    this.readyState = ReadyState.Stopped;
     this.subscriptions = new Subscriptions(this);
   }
 
@@ -149,12 +155,12 @@ export class Client extends TypedEmitter<Events> {
    * servers.
    */
   async start() {
-    if (this.initialised) {
+    if (this.readyState !== ReadyState.Stopped) {
       this.logger.error('This client is already initialised.');
       return;
     }
 
-    this.initialised = true;
+    this.readyState = ReadyState.Starting;
     this.logger.info('Initialising client.');
 
     /* Configure access token and decoded token. */
@@ -252,8 +258,9 @@ export class Client extends TypedEmitter<Events> {
       return;
     }
 
-    this.logger.info('Client initialised.');
+    this.readyState = ReadyState.Ready;
     this.emit('ready');
+    this.logger.info('Client initialised.');
   }
 
   /**
