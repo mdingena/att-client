@@ -25,7 +25,8 @@
     "build:cjs": "tsc -p tsconfig-cjs.json",
     "build:esm": "tsc -p tsconfig-esm.json",
     "postbuild:cjs": "node ./scripts/cjs-package.js",
-    "prepare": "npm run build"
+    "prepare": "run-s prepare:* build",
+    "prepare:husky": "husky install"
   },
   "dependencies": {
     "jwt-decode": "^3.1.2",
@@ -42,7 +43,7 @@
     "eslint-config-prettier": "^8.5.0",
     "eslint-import-resolver-typescript": "^3.3.0",
     "eslint-plugin-import": "^2.26.0",
-    "husky": "^4.3.8",
+    "husky": "^8.0.1",
     "lint-staged": "^12.4.1",
     "npm-run-all": "^4.1.5",
     "prettier": "^2.6.2",
