@@ -60,34 +60,42 @@ export class Group extends TypedEmitter<Events> {
        * Subscribe to group updates, such as changes to servers, roles and permissions.
        */
       this.client.subscriptions.subscribe('group-update', this.id.toString(), async message => {
-        const group = message.content;
-        const member = await this.client.api.getGroupMember(this.id, this.userId.toString());
+        try {
+          const group = message.content;
+          const member = await this.client.api.getGroupMember(this.id, this.userId.toString());
 
-        if (typeof member === 'undefined') {
-          this.client.logger.error(`Couldn't find group member info for group ${group.id} (${this.name}).`);
-          return;
+          if (typeof member === 'undefined') {
+            this.client.logger.error(`Couldn't find group member info for group ${group.id} (${this.name}).`);
+            return;
+          }
+
+          this.updateGroup(group, member);
+        } catch (error) {
+          this.client.logger.error(`Error while handling group update: ${(error as Error).message}`);
         }
-
-        this.updateGroup(group, member);
       }),
 
       /**
        * Subscribe to group member changes, such as assigned role and permissions.
        */
       this.client.subscriptions.subscribe('group-member-update', this.id.toString(), async message => {
-        const member = message.content;
+        try {
+          const member = message.content;
 
-        if (member.user_id !== this.userId) return;
+          if (member.user_id !== this.userId) return;
 
-        this.client.logger.info(`Membership updated for group ${this.id}.`);
-        const group = await this.client.api.getGroupInfo(this.id);
+          this.client.logger.info(`Membership updated for group ${this.id}.`);
+          const group = await this.client.api.getGroupInfo(this.id);
 
-        if (typeof group === 'undefined') {
-          this.client.logger.error(`Couldn't get info for group ${this.id} (${this.name}).`);
-          return;
+          if (typeof group === 'undefined') {
+            this.client.logger.error(`Couldn't get info for group ${this.id} (${this.name}).`);
+            return;
+          }
+
+          this.updateGroup(group, member);
+        } catch (error) {
+          this.client.logger.error(`Error while handling group member update: ${(error as Error).message}`);
         }
-
-        this.updateGroup(group, member);
       }),
 
       /**
@@ -95,10 +103,14 @@ export class Group extends TypedEmitter<Events> {
        * offline state.
        */
       this.client.subscriptions.subscribe('group-server-status', this.id.toString(), async message => {
-        const status = message.content;
+        try {
+          const status = message.content;
 
-        this.client.logger.debug(`Status updated for server ${status.id} (${status.name}).`, JSON.stringify(status));
-        this.manageServerConnection(status);
+          this.client.logger.debug(`Status updated for server ${status.id} (${status.name}).`, JSON.stringify(status));
+          this.manageServerConnection(status);
+        } catch (error) {
+          this.client.logger.error(`Error while handling server update: ${(error as Error).message}`);
+        }
       }),
 
       /**
@@ -110,15 +122,19 @@ export class Group extends TypedEmitter<Events> {
        * server that may be created by players themselves.
        */
       this.client.subscriptions.subscribe('group-server-create', this.id.toString(), _unstableMessage => {
-        /* ⚠️ This code is untested because I can't create new servers. */
-        this.client.logger.warn(
-          'Client is running untested group-server-create code in Group.ts.',
-          JSON.stringify(_unstableMessage)
-        );
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        const serverId = _unstableMessage.content.id as number;
-        this.addServer(serverId);
+        try {
+          /* ⚠️ This code is untested because I can't create new servers. */
+          this.client.logger.warn(
+            'Client is running untested group-server-create code in Group.ts.',
+            JSON.stringify(_unstableMessage)
+          );
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          const serverId = _unstableMessage.content.id as number;
+          this.addServer(serverId);
+        } catch (error) {
+          this.client.logger.error(`Error while handling server creation: ${(error as Error).message}`);
+        }
       }),
 
       /**
@@ -130,15 +146,19 @@ export class Group extends TypedEmitter<Events> {
        * server that may be deleted by players themselves.
        */
       this.client.subscriptions.subscribe('group-server-delete', this.id.toString(), _unstableMessage => {
-        /* ⚠️ This code is untested because I can't delete servers. */
-        this.client.logger.warn(
-          'Client is running untested group-server-delete code in Group.ts.',
-          JSON.stringify(_unstableMessage)
-        );
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        const serverId = _unstableMessage.content.id as number;
-        this.removeServer(serverId);
+        try {
+          /* ⚠️ This code is untested because I can't delete servers. */
+          this.client.logger.warn(
+            'Client is running untested group-server-delete code in Group.ts.',
+            JSON.stringify(_unstableMessage)
+          );
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          const serverId = _unstableMessage.content.id as number;
+          this.removeServer(serverId);
+        } catch (error) {
+          this.client.logger.error(`Error while handling server deletion: ${(error as Error).message}`);
+        }
       })
     ]);
 
