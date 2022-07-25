@@ -1,5 +1,5 @@
-import type { ServerFleet } from '../Api';
-import type { Verbosity } from '../Logger';
+import type { ServerFleet } from '../Api/index.js';
+import type { Verbosity } from '../Logger/index.js';
 
 export type Scope =
   | 'group.info'

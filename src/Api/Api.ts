@@ -1,8 +1,8 @@
-import type { ApiRequest } from './ApiRequest';
-import type { ApiResponse } from './ApiResponse';
-import type { HttpMethod } from './HttpMethod';
-import type { Client } from '../Client';
-import { Endpoint } from './Endpoint';
+import type { ApiRequest } from './ApiRequest.js';
+import type { ApiResponse } from './ApiResponse.js';
+import type { HttpMethod } from './HttpMethod.js';
+import type { Client } from '../Client/index.js';
+import { Endpoint } from './Endpoint.js';
 
 type Parameters = Record<string, string | number>;
 

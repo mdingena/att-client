@@ -1,7 +1,7 @@
-import type { ServerFleet, ServerInfo } from '../Api';
-import type { Group } from '../Group';
+import type { ServerFleet, ServerInfo } from '../Api/index.js';
+import type { Group } from '../Group/index.js';
 import { TypedEmitter } from 'tiny-typed-emitter';
-import { ServerConnection } from '../ServerConnection';
+import { ServerConnection } from '../ServerConnection/index.js';
 
 type Player = {
   id: number;

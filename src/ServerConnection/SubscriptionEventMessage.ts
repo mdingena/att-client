@@ -1,5 +1,5 @@
-import type { CommonMessage } from './CommonMessage';
-import type { SubscriptionEvent } from './SubscriptionEvent';
+import type { CommonMessage } from './CommonMessage.js';
+import type { SubscriptionEvent } from './SubscriptionEvent.js';
 
 type DebugLogSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'DebugLog';

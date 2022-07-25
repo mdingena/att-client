@@ -1,6 +1,6 @@
-import type { ServerFleet } from './Api';
-import type { Config } from './Client/Config';
-import { Verbosity } from './Logger';
+import type { ServerFleet } from './Api/index.js';
+import type { Config } from './Client/Config.js';
+import { Verbosity } from './Logger/index.js';
 
 export const PACKAGE = {
   name: 'att-client',

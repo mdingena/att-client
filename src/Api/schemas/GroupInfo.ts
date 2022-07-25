@@ -1,5 +1,5 @@
-import type { GroupServerInfo } from './GroupServerInfo';
-import type { GroupRoleInfo } from './GroupRoleInfo';
+import type { GroupServerInfo } from './GroupServerInfo.js';
+import type { GroupRoleInfo } from './GroupRoleInfo.js';
 
 export type GroupInfo = {
   id: number;

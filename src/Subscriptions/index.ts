@@ -1,5 +1,5 @@
-export type { ClientErrorMessage } from './ClientErrorMessage';
-export type { ClientEvent } from './ClientEvent';
-export type { ClientEventMessage } from './ClientEventMessage';
-export type { ClientResponseMessage } from './ClientResponseMessage';
-export { Subscriptions } from './Subscriptions';
+export type { ClientErrorMessage } from './ClientErrorMessage.js';
+export type { ClientEvent } from './ClientEvent.js';
+export type { ClientEventMessage } from './ClientEventMessage.js';
+export type { ClientResponseMessage } from './ClientResponseMessage.js';
+export { Subscriptions } from './Subscriptions.js';

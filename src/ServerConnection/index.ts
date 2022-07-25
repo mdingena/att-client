@@ -1,4 +1,4 @@
-export type { CommandResultMessage } from './CommandResultMessage';
-export type { SubscriptionEvent } from './SubscriptionEvent';
-export type { SubscriptionEventMessage } from './SubscriptionEventMessage';
-export { ServerConnection } from './ServerConnection';
+export type { CommandResultMessage } from './CommandResultMessage.js';
+export type { SubscriptionEvent } from './SubscriptionEvent.js';
+export type { SubscriptionEventMessage } from './SubscriptionEventMessage.js';
+export { ServerConnection } from './ServerConnection.js';

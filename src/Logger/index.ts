@@ -1,1 +1,1 @@
-export { Logger, Verbosity } from './Logger';
+export { Logger, Verbosity } from './Logger.js';

@@ -1,5 +1,5 @@
-import type { GroupInfo, GroupMemberInfo, ServerInfo } from '../Api/schemas';
-import type { ClientEvent } from './ClientEvent';
+import type { GroupInfo, GroupMemberInfo, ServerInfo } from '../Api/schemas/index.js';
+import type { ClientEvent } from './ClientEvent.js';
 
 type EventMessage<T extends ClientEvent> = {
   id: 0;

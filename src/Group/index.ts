@@ -1,1 +1,1 @@
-export { Group } from './Group';
+export { Group } from './Group.js';

@@ -13,13 +13,13 @@ export type {
   ServerConnectionInfo,
   ServerInfo,
   ServerFleet
-} from './Api';
-export type { Config, Scope } from './Client';
-export type { CommandResultMessage, SubscriptionEvent, SubscriptionEventMessage } from './ServerConnection';
-export { Api } from './Api';
-export { Client } from './Client';
-export { Group } from './Group';
-export { Server } from './Server';
-export { Logger, Verbosity } from './Logger';
-export { ServerConnection } from './ServerConnection';
-export { Workers } from './Workers';
+} from './Api/index.js';
+export type { Config, Scope } from './Client/index.js';
+export type { CommandResultMessage, SubscriptionEvent, SubscriptionEventMessage } from './ServerConnection/index.js';
+export { Api } from './Api/index.js';
+export { Client } from './Client/index.js';
+export { Group } from './Group/index.js';
+export { Server } from './Server/index.js';
+export { Logger, Verbosity } from './Logger/index.js';
+export { ServerConnection } from './ServerConnection/index.js';
+export { Workers } from './Workers/index.js';

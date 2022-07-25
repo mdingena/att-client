@@ -1,4 +1,4 @@
-import type { ClientEvent } from './ClientEvent';
+import type { ClientEvent } from './ClientEvent.js';
 
 type ResponseMessage = {
   id: number;

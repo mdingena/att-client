@@ -1,16 +1,16 @@
-import type { GroupInfo, GroupMemberInfo } from '../Api/schemas';
-import type { Config } from './Config';
-import type { Server } from '../Server';
-import type { ServerConnection } from '../ServerConnection';
+import type { GroupInfo, GroupMemberInfo } from '../Api/schemas/index.js';
+import type { Config } from './Config.js';
+import type { Server } from '../Server/index.js';
+import type { ServerConnection } from '../ServerConnection/index.js';
 import { createHash } from 'node:crypto';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import jwtDecode from 'jwt-decode';
-import { Api, DecodedToken, Endpoint } from '../Api';
-import { Group } from '../Group';
-import { Logger, Verbosity } from '../Logger';
-import { Subscriptions } from '../Subscriptions';
-import { Workers } from '../Workers';
-import { DEFAULTS, MAX_WORKER_CONCURRENCY_WARNING, PACKAGE } from '../constants';
+import { Api, DecodedToken, Endpoint } from '../Api/index.js';
+import { Group } from '../Group/index.js';
+import { Logger, Verbosity } from '../Logger/index.js';
+import { Subscriptions } from '../Subscriptions/index.js';
+import { Workers } from '../Workers/index.js';
+import { DEFAULTS, MAX_WORKER_CONCURRENCY_WARNING, PACKAGE } from '../constants.js';
 
 interface Events {
   connect: (serverConnection: ServerConnection) => void;
@@ -371,7 +371,7 @@ export class Client extends TypedEmitter<Events> {
     this.logger.info('Decoding access token.');
 
     try {
-      const decodedToken = jwtDecode<DecodedToken>(accessToken);
+      const decodedToken = jwtDecode.default<DecodedToken>(accessToken);
       this.logger.debug('Decoded access token.', JSON.stringify(decodedToken));
 
       return decodedToken;

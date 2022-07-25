@@ -1,12 +1,12 @@
-import type { Client } from '../Client';
-import type { ClientEvent } from './ClientEvent';
-import type { ClientEventMessage } from './ClientEventMessage';
-import type { ClientErrorMessage } from './ClientErrorMessage';
-import type { ClientResponseMessage } from './ClientResponseMessage';
+import type { Client } from '../Client/index.js';
+import type { ClientEvent } from './ClientEvent.js';
+import type { ClientEventMessage } from './ClientEventMessage.js';
+import type { ClientErrorMessage } from './ClientErrorMessage.js';
+import type { ClientResponseMessage } from './ClientResponseMessage.js';
 import { EventEmitter } from 'events';
 import { WebSocket } from 'ws';
-import { HttpMethod, HttpResponseCode } from '../Api';
-import { Workers } from '../Workers';
+import { HttpMethod, HttpResponseCode } from '../Api/index.js';
+import { Workers } from '../Workers/index.js';
 
 type SubscribeResult = void | ClientResponseMessage<`POST /ws/subscription/${ClientEvent}`>;
 

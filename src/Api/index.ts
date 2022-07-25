@@ -1,7 +1,7 @@
-export type { ApiRequest } from './ApiRequest';
-export type { ApiResponse } from './ApiResponse';
-export type { DecodedToken } from './DecodedToken';
-export type { HttpMethod } from './HttpMethod';
+export type { ApiRequest } from './ApiRequest.js';
+export type { ApiResponse } from './ApiResponse.js';
+export type { DecodedToken } from './DecodedToken.js';
+export type { HttpMethod } from './HttpMethod.js';
 export type {
   GroupInfo,
   GroupMemberInfo,
@@ -12,7 +12,7 @@ export type {
   ServerConnectionInfo,
   ServerFleet,
   ServerInfo
-} from './schemas';
-export { Api } from './Api';
-export { Endpoint } from './Endpoint';
-export { HttpResponseCode } from './HttpResponseCode';
+} from './schemas/index.js';
+export { Api } from './Api.js';
+export { Endpoint } from './Endpoint.js';
+export { HttpResponseCode } from './HttpResponseCode.js';

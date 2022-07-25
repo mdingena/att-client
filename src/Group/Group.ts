@@ -1,7 +1,7 @@
-import type { GroupInfo, GroupMemberInfo, ServerInfo } from '../Api/schemas';
-import type { Client } from '../Client';
+import type { GroupInfo, GroupMemberInfo, ServerInfo } from '../Api/schemas/index.js';
+import type { Client } from '../Client/index.js';
 import { TypedEmitter } from 'tiny-typed-emitter';
-import { Server } from '../Server';
+import { Server } from '../Server/index.js';
 
 type Role = {
   id: number;

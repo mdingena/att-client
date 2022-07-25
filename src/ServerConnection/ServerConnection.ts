@@ -1,7 +1,7 @@
-import type { CommandResultMessage } from './CommandResultMessage';
-import type { SubscriptionEvent } from './SubscriptionEvent';
-import type { SubscriptionEventMessage } from './SubscriptionEventMessage';
-import type { Server } from '../Server';
+import type { CommandResultMessage } from './CommandResultMessage.js';
+import type { SubscriptionEvent } from './SubscriptionEvent.js';
+import type { SubscriptionEventMessage } from './SubscriptionEventMessage.js';
+import type { Server } from '../Server/index.js';
 import EventEmitter from 'events';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { WebSocket } from 'ws';

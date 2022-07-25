@@ -1,2 +1,2 @@
-export type { Config, Scope } from './Config';
-export { Client } from './Client';
+export type { Config, Scope } from './Config.js';
+export { Client } from './Client.js';

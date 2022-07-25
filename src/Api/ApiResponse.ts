@@ -1,4 +1,4 @@
-import type { Endpoint } from './Endpoint';
+import type { Endpoint } from './Endpoint.js';
 import type {
   GroupInfo,
   GroupMemberInfo,
@@ -6,7 +6,7 @@ import type {
   JoinedGroupInfo,
   ServerConnectionInfo,
   ServerInfo
-} from './schemas';
+} from './schemas/index.js';
 
 type AcceptGroupInviteResponse = {
   method: 'POST';

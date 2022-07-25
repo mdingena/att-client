@@ -1,4 +1,4 @@
-import type { Scope } from '../Client/Config';
+import type { Scope } from '../Client/Config.js';
 
 type CommonToken = {
   nbf: number;

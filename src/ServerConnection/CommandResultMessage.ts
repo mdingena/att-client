@@ -1,4 +1,4 @@
-import type { CommonMessage } from './CommonMessage';
+import type { CommonMessage } from './CommonMessage.js';
 
 type CommandParameter = {
   Type: string;
