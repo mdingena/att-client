@@ -149,10 +149,7 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
    */
   send<T>(command: string) {
     if (/^(websocket )?(un)?subscribe/i.test(command)) {
-      this.server.group.client.logger.error(
-        `Do not use send() to (un)subscribe to events. Please use subscribe() or unsubscribe() instead.`
-      );
-      return;
+      throw new Error(`Do not use send() to (un)subscribe to events. Please use subscribe() or unsubscribe() instead.`);
     }
 
     return this.command<T>(command);
@@ -193,12 +190,9 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
    *   });
    * });
    */
-  subscribe<T extends SubscriptionEvent>(event: T, callback: (message: SubscriptionEventMessage<T>) => unknown) {
+  subscribe<T extends SubscriptionEvent>(event: T, callback: (message: SubscriptionEventMessage<T>) => void) {
     if (this.subscribedEvents.includes(event)) {
-      this.server.group.client.logger.error(
-        `Already subscribed to ${event} on server ${this.server.id} (${this.server.name}).`
-      );
-      return;
+      throw new Error(`Already subscribed to ${event} on server ${this.server.id} (${this.server.name}).`);
     }
 
     this.server.group.client.logger.info(`Subscribing to ${event} on server ${this.server.id} (${this.server.name}).`);
@@ -219,10 +213,7 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
    */
   unsubscribe<T extends SubscriptionEvent>(event: T) {
     if (!this.subscribedEvents.includes(event)) {
-      this.server.group.client.logger.error(
-        `Subscription to ${event} does not exist on server ${this.server.id} (${this.server.name}).`
-      );
-      return;
+      throw new Error(`Subscription to ${event} does not exist on server ${this.server.id} (${this.server.name}).`);
     }
 
     this.server.group.client.logger.info(
