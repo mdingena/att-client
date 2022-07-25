@@ -1,6 +1,6 @@
 {
   "name": "att-client",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Node bot library for A Township Tale, a VR game by Alta Reality Pty Ltd.",
   "homepage": "https://github.com/mdingena/att-client#readme",
   "repository": {
