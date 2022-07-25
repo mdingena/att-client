@@ -2,7 +2,6 @@
   "name": "att-client",
   "version": "0.3.1",
   "description": "Node bot library for A Township Tale, a VR game by Alta Reality Pty Ltd.",
-  "main": "dist/index.js",
   "homepage": "https://github.com/mdingena/att-client#readme",
   "repository": {
     "type": "git",
@@ -19,9 +18,13 @@
   },
   "scripts": {
     "test": "ts-node -r dotenv/config test.ts",
+    "lint": "eslint \"src/**/*\"",
     "compile": "tsc --noEmit",
     "prebuild": "rimraf dist",
-    "build": "tsc",
+    "build": "run-p build:*",
+    "build:cjs": "tsc -p tsconfig-cjs.json",
+    "build:esm": "tsc -p tsconfig-esm.json",
+    "postbuild:cjs": "node ./scripts/cjs-package.js",
     "prepare": "npm run build"
   },
   "dependencies": {
@@ -36,18 +39,33 @@
     "dotenv": "^16.0.1",
     "eslint": "^8.15.0",
     "eslint-config-prettier": "^8.5.0",
+    "eslint-import-resolver-typescript": "^3.3.0",
+    "eslint-plugin-import": "^2.26.0",
     "husky": "^4.3.8",
     "lint-staged": "^12.4.1",
+    "npm-run-all": "^4.1.5",
     "prettier": "^2.6.2",
     "rimraf": "^3.0.2",
     "tiny-typed-emitter": "^2.1.0",
     "ts-jest": "^28.0.2",
     "ts-node": "^10.7.0",
-    "typescript": "^4.6.4"
+    "typescript": "^4.7.4"
   },
   "engines": {
     "node": ">=18.2.0"
   },
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/esm/index.js",
+      "types": "./dist/types/index.d.ts"
+    }
+  },
+  "module": "./dist/esm/index.js",
+  "main": "./dist/cjs/index.js",
+  "types": "./dist/types/index.d.ts",
   "files": [
     "dist/"
   ]
