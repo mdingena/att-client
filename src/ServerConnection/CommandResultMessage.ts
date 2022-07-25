@@ -24,10 +24,7 @@ type CommandResult<T> = {
     Name: string;
     Description: string;
   };
-};
-
-type CommandException = {
-  Exception: {
+  Exception?: {
     ClassName: string;
     Message: string;
     Data: null | unknown;
@@ -44,5 +41,5 @@ type CommandException = {
 
 export type CommandResultMessage<T> = CommonMessage<'CommandResult'> & {
   commandId: number;
-  data: CommandResult<T> | CommandException;
+  data: CommandResult<T>;
 };
