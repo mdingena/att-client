@@ -181,52 +181,64 @@ export class Client extends TypedEmitter<Events> {
         await Promise.allSettled([
           /* Subscribe to and handle server group invitation message. */
           this.subscriptions.subscribe('me-group-invite-create', userId, message => {
-            const { id, name } = message.content;
+            try {
+              const { id, name } = message.content;
 
-            this.logger.info(`Accepting invite to group ${id} (${name})`);
-            this.api.acceptGroupInvite(id);
+              this.logger.info(`Accepting invite to group ${id} (${name})`);
+              this.api.acceptGroupInvite(id);
+            } catch (error) {
+              this.logger.error(`Error while handling group invite: ${(error as Error).message}`);
+            }
           }),
 
           /* Subscribe to and handle server group joined message. */
           this.subscriptions.subscribe('me-group-create', userId, async message => {
-            /*
-             * The group info from this message is missing information about
-             * this group's servers and roles. So we'll use the group ID from
-             * this message to fetch more complete information. We'll also
-             * need to get this client's group membership details to determine
-             * group permissions.
-             */
-            const groupId = message.content.id;
-            const groupName = message.content.name;
+            try {
+              /*
+               * The group info from this message is missing information about
+               * this group's servers and roles. So we'll use the group ID from
+               * this message to fetch more complete information. We'll also
+               * need to get this client's group membership details to determine
+               * group permissions.
+               */
+              const groupId = message.content.id;
+              const groupName = message.content.name;
 
-            this.logger.info(`Client was added to group ${groupId} (${groupName}).`);
+              this.logger.info(`Client was added to group ${groupId} (${groupName}).`);
 
-            const [group, member] = await Promise.all([
-              this.api.getGroupInfo(groupId),
-              this.api.getGroupMember(groupId, userId)
-            ]);
+              const [group, member] = await Promise.all([
+                this.api.getGroupInfo(groupId),
+                this.api.getGroupMember(groupId, userId)
+              ]);
 
-            if (typeof group === 'undefined') {
-              this.logger.error(`Couldn't get info for group ${groupId} (${groupName}).`);
-              return;
+              if (typeof group === 'undefined') {
+                this.logger.error(`Couldn't get info for group ${groupId} (${groupName}).`);
+                return;
+              }
+
+              if (typeof member === 'undefined') {
+                this.logger.error(`Couldn't find group member info for group ${group.id} (${groupName}).`);
+                return;
+              }
+
+              /* Create a new managed group. */
+              this.addGroup(group, member);
+            } catch (error) {
+              this.logger.error(`Error while joining group: ${(error as Error).message}`);
             }
-
-            if (typeof member === 'undefined') {
-              this.logger.error(`Couldn't find group member info for group ${group.id} (${groupName}).`);
-              return;
-            }
-
-            /* Create a new managed group. */
-            this.addGroup(group, member);
           }),
 
           /* Subscribe to and handle server group left message. */
           this.subscriptions.subscribe('me-group-delete', userId, message => {
-            const groupId = message.content.group.id;
-            const groupName = message.content.group.name;
+            try {
+              const groupId = message.content.group.id;
+              const groupName = message.content.group.name;
 
-            this.logger.info(`Client was removed from group ${groupId} (${groupName}).`);
-            this.removeGroup(groupId);
+              this.logger.info(`Client was removed from group ${groupId} (${groupName}).`);
+              this.removeGroup(groupId);
+            } catch (error) {
+              this.logger.error(`Error while leaving group: ${(error as Error).message}`);
+            }
           })
         ]);
 
