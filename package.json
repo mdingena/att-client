@@ -24,7 +24,7 @@
     "build": "run-p build:*",
     "build:cjs": "tsc -p tsconfig-cjs.json",
     "build:esm": "tsc -p tsconfig-esm.json",
-    "postbuild:cjs": "node ./scripts/cjs-package.js",
+    "postbuild:cjs": "node ./scripts/postbuild-cjs.js",
     "prepare": "run-s prepare:* build",
     "prepare:husky": "husky install"
   },
