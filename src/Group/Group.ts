@@ -279,29 +279,27 @@ export class Group extends TypedEmitter<Events> {
    */
   private async addServer(serverId: number) {
     this.client.logger.debug(`Adding server ${serverId} (${this.name}).`);
+    try {
+      if (Object.keys(this.servers).map(Number).includes(serverId)) {
+        throw new Error(`Can't add server ${serverId} (${this.name}) more than once.`);
+      }
 
-    if (Object.keys(this.servers).map(Number).includes(serverId)) {
-      this.client.logger.error(`Can't add server ${serverId} (${this.name}) more than once.`);
-      return;
+      const server = await this.client.api.getServerInfo(serverId);
+      const managedServer = new Server(this, server);
+
+      this.servers = {
+        ...this.servers,
+        [serverId]: managedServer
+      } as Servers;
+
+      this.emit('server-add', managedServer);
+
+      this.manageServerConnection(server);
+    } catch (error) {
+      this.client.logger.error(
+        `Couldn't get add server ${serverId} to group ${this.id} (${this.name}): ${(error as Error).message}`
+      );
     }
-
-    const server = await this.client.api.getServerInfo(serverId);
-
-    if (typeof server === 'undefined') {
-      this.client.logger.error(`Couldn't get info for server ${serverId} (${this.name}).`);
-      return;
-    }
-
-    const managedServer = new Server(this, server);
-
-    this.servers = {
-      ...this.servers,
-      [serverId]: managedServer
-    } as Servers;
-
-    this.emit('server-add', managedServer);
-
-    this.manageServerConnection(server);
   }
 
   /**

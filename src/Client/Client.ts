@@ -480,7 +480,7 @@ export class Client extends TypedEmitter<Events> {
    *
    * @example
    * try {
-   *   const connection = await client.openUnmanagedServerConnection(serverId);
+   *   const connection = await client.openServerConnection(serverId);
    *
    *   connection.subscribe('PlayerJoined', message => {
    *     const { id, username } = message.data.user;
@@ -490,8 +490,14 @@ export class Client extends TypedEmitter<Events> {
    *   // your error handling
    * }
    */
-  async openUnmanagedServerConnection(serverId: number) {
+  async openServerConnection(serverId: number) {
     if (this.readyState !== ReadyState.Ready) throw new Error('Client is not ready yet.');
+
+    if ('clientId' in this.config) {
+      this.logger.warn(
+        "You are manually opening a server connection, but client is in bot automation mode. You should probably handle your server connection via client.on('connect') instead."
+      );
+    }
 
     const decodedToken = this.decodedToken ?? (await this.refreshTokens());
     const userId = 'client_sub' in decodedToken ? decodedToken.client_sub : decodedToken.UserId;
@@ -509,11 +515,12 @@ export class Client extends TypedEmitter<Events> {
       });
     });
 
-    const connection = new Promise<ServerConnection>(resolve => {
-      server.once('connect', connection => resolve(connection));
-    });
-
-    await server.connect();
+    const connection =
+      server.status === 'connecting'
+        ? new Promise<ServerConnection>(resolve => {
+            server.once('connect', connection => resolve(connection));
+          })
+        : server.connect();
 
     return connection;
   }

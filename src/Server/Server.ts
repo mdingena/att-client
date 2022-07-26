@@ -43,20 +43,20 @@ export class Server extends TypedEmitter<Events> {
   /**
    * Retrieves a server's connection details and establish a console connection.
    */
-  async connect(): Promise<void> {
+  async connect(): Promise<ServerConnection> {
+    this.status = 'connecting';
+
     if (typeof this.connection !== 'undefined') {
-      this.group.client.logger.error(`Can't open a second connection to server ${this.id}'s (${this.name}) console.`);
-      return;
+      throw new Error(`Can't open a second connection to server ${this.id}'s (${this.name}) console.`);
     }
 
     const serverConnectionInfo = await this.group.client.api.getServerConnectionDetails(this.id);
 
     if ('ok' in serverConnectionInfo) {
-      this.group.client.logger.error(`Couldn't get connection details for server ${this.id} (${this.name}).`);
-      return;
+      throw new Error(`Couldn't get connection details for server ${this.id} (${this.name}).`);
     }
 
-    await new Promise<void>(resolve => {
+    return await new Promise<ServerConnection>(resolve => {
       this.group.client.logger.debug(
         `Got connection details for server ${this.id} (${this.name}).`,
         JSON.stringify(serverConnectionInfo)
@@ -109,7 +109,7 @@ export class Server extends TypedEmitter<Events> {
         that.status = 'connected';
         that.emit('connect', this);
         that.group.client.emit('connect', this);
-        resolve();
+        resolve(this);
       }
 
       async function handleClose(this: ServerConnection, code?: number, reason?: Buffer) {
@@ -126,8 +126,6 @@ export class Server extends TypedEmitter<Events> {
           await that.reconnect();
         }
       }
-
-      this.status = 'connecting';
 
       const connection = new ServerConnection(this, address, port, token);
 
@@ -164,7 +162,12 @@ export class Server extends TypedEmitter<Events> {
     );
 
     await new Promise(resolve => setTimeout(resolve, this.group.client.config.serverConnectionRecoveryDelay));
-    await this.connect();
+
+    try {
+      await this.connect();
+    } catch (error) {
+      this.group.client.logger.error((error as Error).message);
+    }
   }
 
   /**

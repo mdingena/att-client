@@ -6,7 +6,7 @@
 - [`client.config`](#clientconfig)
 - [`client.groups`](#clientgroups)
 - [`client.logger`](#clientlogger)
-- [`client.openUnmanagedServerConnection(serverId: number)`](#clientopenunmanagedserverconnection)
+- [`client.openServerConnection(serverId: number)`](#clientopenserverconnection)
 - [`client.refreshTokens()`](#clientrefreshtokens)
 - [`client.start()`](#clientstart)
 - [`client.subscriptions`](#clientsubscriptions)
@@ -130,14 +130,16 @@ client.logger.info('This info message will NOT be logged due to logVerbosity.');
 client.logger.debug('This debug message will NOT be logged due to logVerbosity.');
 ```
 
-## `client.openUnmanagedServerConnection(serverId: number)`
+## `client.openServerConnection(serverId: number)`
 
 - `serverId` `<number>` the ID of the server (not the server group) you want to connect to
 - Returns: <code>Promise&lt;[ServerConnection](./ServerConnection.md)&gt;</code>
 
+Manually opens a server console connection. You shouldn't use this method unless you are configuring the `Client` with [user credentials](./Config.md#configusername), as it's the only way to open a server console connection when not using bot automation features.
+
 ```ts
 try {
-  const connection = await client.openUnmanagedServerConnection(serverId);
+  const connection = await client.openServerConnection(serverId);
 
   connection.subscribe('PlayerJoined', message => {
     const { id, username } = message.data.user;
