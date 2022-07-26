@@ -131,7 +131,7 @@ export class Api {
     if (!response.ok) {
       this.client.logger.error(`${method} ${response.url} responded with ${response.status} ${response.statusText}.`);
       const body = await response.json();
-      throw new Error(JSON.stringify(body));
+      throw new Error('message' in body ? body.message : JSON.stringify(body));
     }
 
     return response;
