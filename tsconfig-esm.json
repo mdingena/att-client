@@ -4,7 +4,6 @@
     "declaration": true,
     "declarationDir": "dist/types",
     "declarationMap": false,
-    "module": "ES2020",
     "outDir": "dist/esm"
   }
 }
