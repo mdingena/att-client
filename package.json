@@ -17,7 +17,7 @@
     "url": "https://github.com/mdingena/att-client/issues"
   },
   "scripts": {
-    "test": "node --loader ts-node/esm -r dotenv/config src/test.ts",
+    "test": "node --loader ts-node/esm -r dotenv/config test.ts",
     "lint": "eslint \"src/**/*\"",
     "compile": "tsc --noEmit",
     "prebuild": "rimraf dist",
