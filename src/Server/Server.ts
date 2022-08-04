@@ -56,7 +56,7 @@ export class Server extends TypedEmitter<Events> {
       throw new Error(`Couldn't get connection details for server ${this.id} (${this.name}).`);
     }
 
-    return await new Promise<ServerConnection>(resolve => {
+    return await new Promise<ServerConnection>((resolve, reject) => {
       this.group.client.logger.debug(
         `Got connection details for server ${this.id} (${this.name}).`,
         JSON.stringify(serverConnectionInfo)
@@ -100,7 +100,7 @@ export class Server extends TypedEmitter<Events> {
          * because supposedly not all errors result in a disconnect.
          */
         if (that.status !== 'connected') {
-          throw error;
+          reject(error);
         }
       }
 
