@@ -17,6 +17,7 @@ export class Subscriptions {
   private events: EventEmitter;
   private messageId: number;
   private migrationDelay?: NodeJS.Timeout;
+  private migrationId: number;
   private pingInterval?: NodeJS.Timer;
   private resolveHalted?: (value: void | PromiseLike<void>) => void;
   private subscriptions: Record<string, (message: ClientEventMessage<ClientEvent>) => void>;
@@ -27,6 +28,7 @@ export class Subscriptions {
     this.client = client;
     this.halted = Promise.resolve();
     this.messageId = 1;
+    this.migrationId = 1;
     this.subscriptions = {};
   }
 
@@ -43,13 +45,13 @@ export class Subscriptions {
       return;
     }
 
-    this.ws = await this.createWebSocket(this.client.accessToken);
+    this.ws = await this.createWebSocket(this.client.accessToken, this.migrationId);
   }
 
   /**
    * Creates a new WebSocket instance.
    */
-  private async createWebSocket(accessToken: string): Promise<WebSocket> {
+  private async createWebSocket(accessToken: string, migrationId: number): Promise<WebSocket> {
     try {
       return await new Promise<WebSocket>((resolve, reject) => {
         const that = this;
@@ -111,7 +113,7 @@ export class Subscriptions {
           const message = JSON.parse(data.toString());
 
           /* Handle messages during migration. */
-          if (typeof that.resolveHalted !== 'undefined') {
+          if (migrationId === that.migrationId && typeof that.resolveHalted !== 'undefined') {
             that.events.emit('migrate', message);
             return;
           }
@@ -179,7 +181,7 @@ export class Subscriptions {
       );
 
       await new Promise(resolve => setTimeout(resolve, this.client.config.webSocketRecoveryRetryDelay));
-      return await this.createWebSocket(accessToken);
+      return await this.createWebSocket(accessToken, migrationId);
     }
   }
 
@@ -238,9 +240,10 @@ export class Subscriptions {
     });
 
     /* Create a new WebSocket instance. */
+    this.migrationId = this.getMigrationId();
     const oldWs = this.ws;
     delete this.ws;
-    this.ws = await this.createWebSocket(this.client.accessToken);
+    this.ws = await this.createWebSocket(this.client.accessToken, this.migrationId);
 
     /* Send the migration token over new WebSocket. */
     try {
@@ -350,9 +353,10 @@ export class Subscriptions {
 
     /* Create new WebSocket */
     clearInterval(this.pingInterval);
+    this.migrationId = this.getMigrationId();
     this.ws?.removeAllListeners();
     delete this.ws;
-    this.ws = await this.createWebSocket(this.client.accessToken);
+    this.ws = await this.createWebSocket(this.client.accessToken, this.migrationId);
 
     /* Unblock all backed-up messages. */
     this.clearHalted();
@@ -417,6 +421,13 @@ export class Subscriptions {
    */
   private getMessageId() {
     return this.messageId++;
+  }
+
+  /**
+   * Gets a unique WebSocket migration ID.
+   */
+  private getMigrationId() {
+    return this.migrationId++;
   }
 
   /**
