@@ -430,7 +430,7 @@ export class Subscriptions {
   ) {
     if (path !== 'migrate') await this.halted;
 
-    return new Promise(
+    return await new Promise(
       (
         resolve: (message: ClientResponseMessage<`${M} /ws/${P}`>) => void,
         reject: (error?: ClientErrorMessage) => void

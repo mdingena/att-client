@@ -168,8 +168,8 @@ export class Group extends TypedEmitter<Events> {
   /**
    * Updates all managed servers with new server info.
    */
-  private updateServers() {
-    return Promise.all(Object.values(this.servers).map(async server => this.updateServer(server.id)));
+  private async updateServers() {
+    return await Promise.all(Object.values(this.servers).map(server => this.updateServer(server.id)));
   }
 
   /**

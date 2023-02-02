@@ -436,7 +436,7 @@ export class Client extends TypedEmitter<Events> {
       [group.id]: managedGroup
     } as Groups;
 
-    return managedGroup.init();
+    return await managedGroup.init();
   }
 
   /**
@@ -522,6 +522,6 @@ export class Client extends TypedEmitter<Events> {
           })
         : server.connect();
 
-    return connection;
+    return await connection;
   }
 }
