@@ -2,11 +2,6 @@ import type { ServerFleet } from './Api/index.js';
 import type { Config } from './Client/Config.js';
 import { Verbosity } from './Logger/index.js';
 
-export const PACKAGE = {
-  name: 'att-client',
-  version: '0.4.4'
-};
-
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 
