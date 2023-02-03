@@ -1,7 +1,7 @@
 import type { ServerFleet } from '../Client/ServerFleet.js';
 import type { LogVerbosity } from '../Log/LogVerbosity.js';
 
-type Scope =
+export type Scope =
   | 'group.info'
   | 'group.invite'
   | 'group.join'
