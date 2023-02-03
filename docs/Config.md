@@ -155,7 +155,7 @@ This option allows [`Client`](./Client.md) to impersonate a user account when in
 ## `Config.restBaseUrl`
 
 - `<string>` Base URL of the REST API.
-- Defaults to `'https://967phuchye.execute-api.ap-southeast-2.amazonaws.com/prod/api'`.
+- Defaults to `'https://webapi.townshiptale.com'`.
 
 This option allows you to change where [`Api`](./Api.md) sends its requests.
 
@@ -296,7 +296,7 @@ This option configures the delay before retrying failed WebSocket requests.
 ## `Config.webSocketUrl`
 
 - `<string>` URL to bot account WebSocket.
-- Defaults to `'wss://5wx2mgoj95.execute-api.ap-southeast-2.amazonaws.com/dev'`.
+- Defaults to `'wss://websocket.townshiptale.com'`.
 
 This option allows you to change where [`Subscriptions`](./Subscriptions.md) sends its messages.
 

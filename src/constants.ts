@@ -14,7 +14,7 @@ const MAX_WORKER_CONCURRENCY = 5;
 
 export const MAX_WORKER_CONCURRENCY_WARNING = 10;
 
-const REST_BASE_URL = 'https://967phuchye.execute-api.ap-southeast-2.amazonaws.com/prod/api';
+const REST_BASE_URL = 'https://webapi.townshiptale.com';
 
 const SERVER_CONNECTION_RECOVERY_DELAY = 10 * SECOND;
 
@@ -40,7 +40,7 @@ const WEBSOCKET_REQUEST_ATTEMPTS = 3;
 
 const WEBSOCKET_REQUEST_RETRY_DELAY = 3 * SECOND;
 
-const WEBSOCKET_URL = 'wss://5wx2mgoj95.execute-api.ap-southeast-2.amazonaws.com/dev';
+const WEBSOCKET_URL = 'wss://websocket.townshiptale.com';
 
 const X_API_KEY = '2l6aQGoNes8EHb94qMhqQ5m2iaiOM9666oDTPORf';
 

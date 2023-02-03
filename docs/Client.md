@@ -6,7 +6,7 @@
 - [`client.config`](#clientconfig)
 - [`client.groups`](#clientgroups)
 - [`client.logger`](#clientlogger)
-- [`client.openServerConnection(serverId: number)`](#clientopenserverconnection)
+- [`client.openServerConnection(serverId: number)`](#clientopenserverconnectionserverid-number)
 - [`client.refreshTokens()`](#clientrefreshtokens)
 - [`client.start()`](#clientstart)
 - [`client.subscriptions`](#clientsubscriptions)
