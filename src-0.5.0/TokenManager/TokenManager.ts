@@ -1,15 +1,60 @@
-import type { InternalClientConfiguration } from '../ClientConfiguration/getInternalClientConfiguration.js';
+import type { BotCredentials, Scope, UserCredentials } from '../ClientConfiguration/ClientConfiguration.js';
+import type { InternalClientConfiguration } from '../ClientConfiguration/InternalClientConfiguration.js';
 import type { Log } from '../Log/Log.js';
-import { getRequestBody } from './getRequestBody.js';
-import { AGENT } from '../constants.js';
-import { ApiEndpoint } from '../Api/ApiEndpoint.js';
+import jwtDecode from 'jwt-decode';
+import { BotTokenRequest } from './BotTokenRequest.js';
+import { UserTokenRequest } from './UserTokenRequest.js';
 
-type TokenManagerConfiguration = Pick<
+type CommonToken = {
+  nbf: number;
+  exp: number;
+  iss: string;
+  aud: string[];
+};
+
+type BotToken = CommonToken & {
+  client_id: string;
+  client_sub: string;
+  client_username: string;
+  client_bot: 'true' | 'false';
+  scope: Scope;
+};
+
+type UserToken = CommonToken & {
+  UserId: string;
+  Username: string;
+  role: string;
+  is_verified: string;
+  Policy: string[];
+};
+
+export type DecodedToken = BotToken | UserToken;
+
+export type TokenManagerConfiguration = Pick<
   InternalClientConfiguration,
   'credentials' | 'restBaseUrl' | 'tokenUrl' | 'xApiKey'
 >;
 
+type BotConfiguration = Omit<TokenManagerConfiguration, 'credentials'> & {
+  credentials: BotCredentials;
+};
+
+type UserConfiguration = Omit<TokenManagerConfiguration, 'credentials'> & {
+  credentials: UserCredentials;
+};
+
+export function isBotConfiguration(configuration: TokenManagerConfiguration): configuration is BotConfiguration {
+  return 'clientId' in configuration.credentials;
+}
+
+export function isUserConfiguration(configuration: TokenManagerConfiguration): configuration is UserConfiguration {
+  return 'username' in configuration.credentials;
+}
+
 export class TokenManager {
+  accessToken: string | undefined;
+  decodedToken: DecodedToken | undefined;
+
   private configuration: TokenManagerConfiguration;
   private log: Log;
   private refreshDelay?: NodeJS.Timeout;
@@ -20,45 +65,43 @@ export class TokenManager {
   }
 
   /**
+   * Refreshes access token and decoded token.
+   */
+  async refresh(): Promise<void> {
+    clearTimeout(this.refreshDelay);
+    delete this.refreshDelay;
+
+    /* Retrieve and decode JWT. */
+    this.accessToken = await this.getAccessToken();
+    this.decodedToken = await this.decodeToken(this.accessToken);
+
+    /* Schedule JWT refresh. */
+    const tokenExpiresAfter = 1000 * this.decodedToken.exp - Date.now();
+    const tokenRefreshDelay = Math.floor(tokenExpiresAfter * 0.9);
+    this.refreshDelay = setTimeout(this.refresh.bind(this), tokenRefreshDelay);
+  }
+
+  /**
    * Fetches a new access token from the Alta API.
    * The access token is a JWT that can be decoded to retrieve information about your client.
    */
   private async getAccessToken(): Promise<string> {
-    let accessToken;
+    let accessToken: string | undefined;
 
     while (typeof accessToken === 'undefined') {
-      this.log.info('Retrieving access token.');
+      this.log.debug('Retrieving access token.');
 
-      const body = getRequestBody(this.configuration.credentials);
-      const bodyString = body.toString();
-      this.log.debug('Created access token request payload.', bodyString);
+      const tokenRequest = isBotConfiguration(this.configuration)
+        ? new BotTokenRequest(this.configuration)
+        : isUserConfiguration(this.configuration)
+        ? new UserTokenRequest(this.configuration)
+        : null;
 
-      const headers = new Headers({
-        'Content-Length': bodyString.length.toString(),
-        'User-Agent': `${AGENT.name} v${AGENT.version}`
-      });
-
-      if ('clientId' in this.configuration.credentials) {
-        headers.append('Content-Type', 'application/x-www-form-urlencoded');
-      } else {
-        headers.append('Content-Type', 'application/json');
-        headers.append('x-api-key', this.configuration.xApiKey);
-      }
-
-      this.log.debug('Configured access token request headers.', headers);
-
-      const endpoint =
-        'clientId' in this.configuration.credentials
-          ? this.configuration.tokenUrl
-          : `${this.configuration.restBaseUrl}${ApiEndpoint.sessions}`;
+      if (tokenRequest === null) throw new Error();
 
       try {
         this.log.debug('Sending access token request.');
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers,
-          body
-        });
+        const response = await fetch(tokenRequest);
 
         const data = await response.json();
         this.log.debug('Retrieving access token data.', JSON.stringify(data));
@@ -87,22 +130,9 @@ export class TokenManager {
   /**
    * Takes an access token and decodes it to get its JWT payload.
    */
-  private async decodeToken(accessToken: string): Promise<DecodedToken> {
-    this.log.info('Decoding access token.');
+  private decodeToken(accessToken: string): DecodedToken {
+    this.log.debug('Decoding access token.');
 
-    try {
-      const decodedToken = jwtDecode.default<DecodedToken>(accessToken);
-      this.log.debug('Decoded access token.', JSON.stringify(decodedToken));
-
-      return decodedToken;
-    } catch (error) {
-      this.log.error((error as Error).message);
-
-      await new Promise(resolve => setTimeout(resolve, 10000));
-
-      const accessToken = await this.getAccessToken();
-
-      return await this.decodeToken(accessToken);
-    }
+    return jwtDecode.default<DecodedToken>(accessToken);
   }
 }
