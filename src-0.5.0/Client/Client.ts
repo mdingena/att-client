@@ -1,7 +1,7 @@
-import type { InternalClientConfiguration } from '../ClientConfiguration/getInternalClientConfiguration.js';
+import type { InternalClientConfiguration } from '../ClientConfiguration/InternalClientConfiguration.js';
 import type { ClientConfiguration } from '../ClientConfiguration/ClientConfiguration.js';
 import { TypedEmitter } from 'tiny-typed-emitter';
-import { getInternalClientConfiguration } from '../ClientConfiguration/getInternalClientConfiguration.js';
+import { getInternalClientConfiguration } from '../ClientConfiguration/InternalClientConfiguration.js';
 import { validateClientConfiguration } from './validateClientConfiguration.js';
 import { GroupManager } from '../GroupManager/GroupManager.js';
 import { Log } from '../Log/Log.js';
