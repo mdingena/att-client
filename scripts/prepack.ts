@@ -1,9 +1,9 @@
-import { PACKAGE } from '../src/constants.js';
+import { AGENT } from '../src/constants.js';
 
 const packageJsonVersion = process.env['npm_package_version'];
 
-if (packageJsonVersion !== PACKAGE.version) {
+if (packageJsonVersion !== AGENT.version) {
   throw new Error(
-    `Package version mismatch: ${packageJsonVersion} (./package.json) ↔ ${PACKAGE.version} (src/constants.ts).`
+    `Package version mismatch: ${packageJsonVersion} (./package.json) ↔ ${AGENT.version} (src/constants.ts).`
   );
 }

@@ -10,7 +10,7 @@ import { Group } from '../Group/index.js';
 import { Logger, Verbosity } from '../Logger/index.js';
 import { Subscriptions } from '../Subscriptions/index.js';
 import { Workers } from '../Workers/index.js';
-import { DEFAULTS, MAX_WORKER_CONCURRENCY_WARNING, PACKAGE } from '../constants.js';
+import { AGENT, DEFAULTS, MAX_WORKER_CONCURRENCY_WARNING } from '../constants.js';
 
 interface Events {
   connect: (serverConnection: ServerConnection) => void;
@@ -144,7 +144,7 @@ export class Client extends TypedEmitter<Events> {
     /* Initialise internals. */
     this.api = new Api(this);
     this.groups = {};
-    this.name = `${PACKAGE.name} v${PACKAGE.version}`;
+    this.name = `${AGENT.name} v${AGENT.version}`;
     this.readyState = ReadyState.Stopped;
     this.subscriptions = new Subscriptions(this);
   }

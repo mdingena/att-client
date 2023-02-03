@@ -2,9 +2,9 @@ import type { ServerFleet } from './Api/index.js';
 import type { Config } from './Client/Config.js';
 import { Verbosity } from './Logger/index.js';
 
-export const PACKAGE = {
+export const AGENT = {
   name: 'att-client',
-  version: '0.4.4'
+  version: '0.4.5'
 };
 
 const SECOND = 1000;
