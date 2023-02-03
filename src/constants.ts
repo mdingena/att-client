@@ -14,7 +14,7 @@ const MAX_WORKER_CONCURRENCY = 5;
 
 export const MAX_WORKER_CONCURRENCY_WARNING = 10;
 
-const REST_BASE_URL = 'https://webapi.townshiptale.com';
+const REST_BASE_URL = 'https://webapi.townshiptale.com/api';
 
 const SERVER_CONNECTION_RECOVERY_DELAY = 10 * SECOND;
 
