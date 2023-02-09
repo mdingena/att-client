@@ -36,7 +36,10 @@ type MeGroupInviteDeleteMessage = EventMessage<'me-group-invite-delete'> & {
 };
 
 type MeGroupCreateMessage = EventMessage<'me-group-create'> & {
-  content: GroupInfo;
+  content: {
+    group: GroupInfo;
+    member: GroupMemberInfo;
+  };
 };
 
 type ClientEventMessageUnion =

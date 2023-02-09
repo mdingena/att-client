@@ -194,32 +194,9 @@ export class Client extends TypedEmitter<Events> {
           /* Subscribe to and handle server group joined message. */
           this.subscriptions.subscribe('me-group-create', userId, async message => {
             try {
-              /*
-               * The group info from this message is missing information about
-               * this group's servers and roles. So we'll use the group ID from
-               * this message to fetch more complete information. We'll also
-               * need to get this client's group membership details to determine
-               * group permissions.
-               */
-              const groupId = message.content.id;
-              const groupName = message.content.name;
+              const { group, member } = message.content;
 
-              this.logger.info(`Client was added to group ${groupId} (${groupName}).`);
-
-              const [group, member] = await Promise.all([
-                this.api.getGroupInfo(groupId),
-                this.api.getGroupMember(groupId, userId)
-              ]);
-
-              if (typeof group === 'undefined') {
-                this.logger.error(`Couldn't get info for group ${groupId} (${groupName}).`);
-                return;
-              }
-
-              if (typeof member === 'undefined') {
-                this.logger.error(`Couldn't find group member info for group ${group.id} (${groupName}).`);
-                return;
-              }
+              this.logger.info(`Client was added to group ${group.id} (${group.name}).`);
 
               /* Create a new managed group. */
               this.addGroup(group, member);
