@@ -171,6 +171,7 @@ export class Server extends TypedEmitter<Events> {
       await this.connect();
     } catch (error) {
       this.group.client.logger.error((error as Error).message);
+      await this.reconnect();
     }
   }
 
