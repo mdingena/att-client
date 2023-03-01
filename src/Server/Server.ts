@@ -65,18 +65,22 @@ export class Server extends TypedEmitter<Events> {
       const { allowed, connection: connectionDetails, token } = serverConnectionInfo;
 
       if (typeof connectionDetails === 'undefined') {
-        throw new Error(
-          `Console WebSocket details are missing for server ${this.id} (${this.name}). ${serverConnectionInfo.message}`
+        return reject(
+          new Error(
+            `Console WebSocket details are missing for server ${this.id} (${this.name}). ${serverConnectionInfo.message}`
+          )
         );
       }
 
       if (typeof token === 'undefined') {
-        throw new Error(`Console WebSocket token is missing for server ${this.id} (${this.name}).`);
+        return reject(new Error(`Console WebSocket token is missing for server ${this.id} (${this.name}).`));
       }
 
       if (!allowed) {
-        throw new Error(
-          `This client is not allowed to use server ${this.id}'s (${this.name}) console. Check that the bot account for this client was granted "Console" permissions.`
+        return reject(
+          new Error(
+            `This client is not allowed to use server ${this.id}'s (${this.name}) console. Check that the bot account for this client was granted "Console" permissions.`
+          )
         );
       }
 
