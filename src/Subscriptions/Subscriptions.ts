@@ -7,8 +7,6 @@ import { EventEmitter } from 'events';
 import { WebSocket } from 'ws';
 import { HttpMethod, HttpResponseCode } from '../Api/index.js';
 
-type SubscribeResult = void | ClientResponseMessage<`POST /ws/subscription/${ClientEvent}`>;
-
 export class Subscriptions {
   client: Client;
   halted: Promise<void>;
