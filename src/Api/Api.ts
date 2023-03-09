@@ -118,23 +118,26 @@ export class Api {
       return await this.request<TMethod, TEndpoint>(method, endpoint, params, query, payload);
     }
 
+    const headers = this.headers;
     const url = this.createUrl(endpoint, params, query);
 
     this.client.logger.debug(`Requesting ${method} ${url}`, JSON.stringify(payload));
 
-    const response: ApiResponse<TMethod, TEndpoint> = await fetch(url.toString(), {
-      method,
-      headers: this.headers,
-      body: typeof payload === 'undefined' ? null : JSON.stringify(payload)
+    return await this.client.workers.do(async () => {
+      const response = await fetch(url.toString(), {
+        method,
+        headers,
+        body: typeof payload === 'undefined' ? null : JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        this.client.logger.error(`${method} ${response.url} responded with ${response.status} ${response.statusText}.`);
+        const body = await response.json();
+        throw new Error('message' in body ? body.message : JSON.stringify(body));
+      }
+
+      return response;
     });
-
-    if (!response.ok) {
-      this.client.logger.error(`${method} ${response.url} responded with ${response.status} ${response.statusText}.`);
-      const body = await response.json();
-      throw new Error('message' in body ? body.message : JSON.stringify(body));
-    }
-
-    return response;
   }
 
   /**

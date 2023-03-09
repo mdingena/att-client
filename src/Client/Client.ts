@@ -33,6 +33,7 @@ export class Client extends TypedEmitter<Events> {
   logger: Logger;
   name: string;
   subscriptions: Subscriptions;
+  workers: Workers;
 
   private decodedToken?: DecodedToken;
   private readyState: ReadyState;
@@ -147,6 +148,7 @@ export class Client extends TypedEmitter<Events> {
     this.name = `${AGENT.name} v${AGENT.version}`;
     this.readyState = ReadyState.Stopped;
     this.subscriptions = new Subscriptions(this);
+    this.workers = new Workers(this.config.maxWorkerConcurrency);
   }
 
   /**
@@ -219,33 +221,27 @@ export class Client extends TypedEmitter<Events> {
           })
         ]);
 
-        /* Manage all joined groups. */
-        const joinedGroups = await this.api.getJoinedGroups();
+        /* Manage all joined groups and accept pending invites. */
+        const [joinedGroups, invites] = await Promise.all([
+          this.api.getJoinedGroups(),
+          this.api.getPendingGroupInvites()
+        ]);
+
+        let joinedGroupsPromise, acceptInvitesPromise;
 
         if (joinedGroups.length > 0) {
           this.logger.info(`Managing ${joinedGroups.length} group${joinedGroups.length > 1 ? 's' : ''}.`);
 
-          const tasks = joinedGroups.map(
-            ({ group, member }) =>
-              () =>
-                this.addGroup(group, member)
-          );
-
-          const workers = new Workers(this.config.maxWorkerConcurrency);
-          await workers.do(tasks);
+          joinedGroupsPromise = Promise.all(joinedGroups.map(({ group, member }) => this.addGroup(group, member)));
         }
-
-        /* Accept pending group invites. */
-        const invites = await this.api.getPendingGroupInvites();
 
         if (invites.length > 0) {
           this.logger.info(`Accepting ${invites.length} pending group invite${invites.length > 1 ? 's' : ''}.`);
 
-          const tasks = invites.map(invite => () => this.api.acceptGroupInvite(invite.id));
-
-          const workers = new Workers(this.config.maxWorkerConcurrency);
-          await workers.do(tasks);
+          acceptInvitesPromise = invites.map(invite => this.api.acceptGroupInvite(invite.id));
         }
+
+        await Promise.all([joinedGroupsPromise, acceptInvitesPromise]);
       } catch (error) {
         this.logger.error((error as Error).message);
         return;

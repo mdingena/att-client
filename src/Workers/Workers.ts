@@ -1,93 +1,62 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-type Callback = (...args: any) => Promise<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Task<T = any> = () => T | Promise<T>;
 
-type Task<T extends Callback> = () => ReturnType<T>;
-
-type TaskCallback<T extends Callback> = (taskResult: void | TaskReturnValue<T>) => void;
-
-type TaskResult<T extends Callback> = {
-  worker: Worker<T>;
-  result: IteratorResult<TaskReturnValue<T>, void>;
-};
-
-type TaskReturnValue<T extends Callback> = void | Awaited<ReturnType<T>>;
-
-type Worker<T extends Callback> = AsyncGenerator<TaskReturnValue<T>, void, ReturnType<T>>;
-
-export class Workers<T extends Callback> {
-  maxConcurrency: number;
-  pool: Map<Worker<T>, Promise<TaskResult<T>>>;
-  tasks: IterableIterator<Task<T>>;
-  workers: Worker<T>[];
+export class Workers {
+  private concurrency = 0;
+  private readonly maxConcurrency: number;
+  private readonly queue: Task[] = [];
 
   constructor(maxConcurrency: number) {
     this.maxConcurrency = maxConcurrency;
-    this.pool = new Map();
-    this.tasks = [].values();
-    this.workers = new Array(maxConcurrency);
   }
 
-  /**
-   * Takes an array of functions (tasks) to perform.
-   * Tasks are executed asynchronously and in parallel, though the number of parallel tasks
-   * will not exceed the `maxConcurrency` setting.
-   */
-  async do(tasks: Task<T>[], callback?: TaskCallback<T>): Promise<TaskReturnValue<T>[]> {
-    this.tasks = tasks.values();
-
-    for (let i = 0; i < this.maxConcurrency; i++) {
-      this.workers[i] = this.createWorker();
-    }
-
-    this.pool = new Map(this.workers.map(worker => [worker, this.assign(worker)]));
-
-    const results = [];
-
-    for await (const taskResult of this.watch()) {
-      results.push(taskResult);
-      callback?.(taskResult);
-    }
-
-    return results;
+  private pushQueue<T>(task: Task<T>, resolve: (value: T) => void): void {
+    this.queue.push(async () => {
+      try {
+        const result = await task();
+        resolve(result);
+      } finally {
+        this.concurrency--;
+        this.doWork();
+      }
+    });
   }
 
-  /**
-   * Creates a "worker" which essentially picks the next unassigned task from the queue and yields its results.
-   */
-  private async *createWorker(): Worker<T> {
-    for (const task of this.tasks) {
-      yield await task();
-    }
+  private shiftQueue(): Task | undefined {
+    return this.queue.shift();
   }
 
-  /**
-   * Instructs a worker to pick up the next task in the queue. Returns a Promise of the task result.
-   */
-  private async assign(worker: Worker<T>): Promise<TaskResult<T>> {
-    const task = worker.next();
+  private doWork() {
+    while (this.concurrency < this.maxConcurrency && this.queue.length > 0) {
+      const work = this.shiftQueue();
 
-    return { worker, result: await task };
-  }
-
-  /**
-   * Begins doing work and yielding the results as each work completes until there is no work left.
-   */
-  private async *watch() {
-    while (this.pool.size) {
-      const pooledWork = this.pool.values();
-      const completedWork = await Promise.race(pooledWork);
-
-      const {
-        worker,
-        result: { value, done }
-      } = completedWork;
-
-      if (done) {
-        this.pool.delete(worker);
-      } else {
-        this.pool.set(worker, this.assign(worker));
-        yield value;
+      if (typeof work !== 'undefined') {
+        this.concurrency++;
+        work();
       }
     }
+  }
+
+  /**
+   * Appends a task to the Workers queue for processing.
+   */
+  async do<T>(task: Task<T>): Promise<T> {
+    const promise = new Promise<T>(resolve => this.pushQueue(task, resolve));
+
+    this.doWork();
+
+    return await promise;
+  }
+
+  /**
+   * Appends many tasks to the Workers queue for processing.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async doMany<T extends Task<any>[]>(tasks: T): Promise<{ [K in keyof T]: ReturnType<T[K]> }> {
+    const batch = tasks.map(task => new Promise<T>(resolve => this.pushQueue(task, resolve)));
+
+    this.doWork();
+
+    return (await Promise.all(batch)) as { [K in keyof T]: ReturnType<T[K]> };
   }
 }

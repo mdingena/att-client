@@ -6,7 +6,6 @@ import type { ClientResponseMessage } from './ClientResponseMessage.js';
 import { EventEmitter } from 'events';
 import { WebSocket } from 'ws';
 import { HttpMethod, HttpResponseCode } from '../Api/index.js';
-import { Workers } from '../Workers/index.js';
 
 type SubscribeResult = void | ClientResponseMessage<`POST /ws/subscription/${ClientEvent}`>;
 
@@ -366,7 +365,6 @@ export class Subscriptions {
     this.subscriptions = {};
 
     /* Resubscribe to all saved subscriptions. */
-    const workers = new Workers(this.client.config.maxWorkerConcurrency);
     const tasks = Object.entries(subscriptions).map(([entry, callback]) => () => {
       const [subscription, key] = entry.split('/') as [ClientEvent, string];
 
@@ -384,8 +382,8 @@ export class Subscriptions {
     });
 
     try {
-      await Promise.race<SubscribeResult[]>([
-        await workers.do(tasks),
+      await Promise.race([
+        await this.client.workers.doMany(tasks),
         new Promise<never>((_, reject) =>
           setTimeout(() => {
             reject(
@@ -491,7 +489,12 @@ export class Subscriptions {
         });
 
         this.client.logger.debug(`Sending message-${id}.`, message);
-        this.ws.send(message, error => typeof error !== 'undefined' && reject(this.createErrorMessage(error.message)));
+
+        const ws = this.ws;
+
+        this.client.workers.do(() => {
+          ws.send(message, error => typeof error !== 'undefined' && reject(this.createErrorMessage(error.message)));
+        });
       }
     ).catch((message: ClientErrorMessage) => {
       this.client.logger.error('Subscriptions.send() error:', message.content.message);
