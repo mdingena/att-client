@@ -19,17 +19,21 @@ type InfoLogSubscriptionEventMessage = CommonMessage<'Subscription'> & {
 type InventoryChangedSubscriptionEventMessage = CommonMessage<'Subscription'> & {
     eventType: 'InventoryChanged';
     data: {
-        user: {
-           id: number,
-           username: string
+        User: {
+            id: number,
+            username: string
         },
-        itemname: string,
-        quantity: number,
-        itemhash: string,
-        material?: string,
-        savestring: string,
-        changetype: string,
-        inventorytype: string
+        ItemName: string,
+        Quantity: number,
+        ItemHash?: string,
+        Material?: string,
+        SaveString: string,
+        ChangeType: 'Pickup'|'Drop'|'Dock'|'UnDock',
+        InventoryType: 'World'|'Player',
+        DestinationUser?: {
+            id: number,
+            username: string
+        },
     };
 };
 type ObjectKilledSubscriptionEventMessage = CommonMessage<'Subscription'> & {
