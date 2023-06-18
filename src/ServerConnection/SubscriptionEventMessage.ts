@@ -1,21 +1,26 @@
 import type { CommonMessage } from './CommonMessage.js';
 import type { SubscriptionEvent } from './SubscriptionEvent.js';
+
 type DebugLogSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'DebugLog';
   data: unknown;
 };
+
 type ErrorLogSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'ErrorLog';
   data: unknown;
 };
+
 type FatalLogSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'FatalLog';
   data: unknown;
 };
+
 type InfoLogSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'InfoLog';
   data: unknown;
 };
+
 type InventoryChangedSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'InventoryChanged';
   data: {
@@ -36,6 +41,7 @@ type InventoryChangedSubscriptionEventMessage = CommonMessage<'Subscription'> & 
     };
   };
 };
+
 type ObjectKilledSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'ObjectKilled';
   data: {
@@ -51,6 +57,7 @@ type ObjectKilledSubscriptionEventMessage = CommonMessage<'Subscription'> & {
     };
   };
 };
+
 type PlayerJoinedSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'PlayerJoined';
   data: {
@@ -62,6 +69,7 @@ type PlayerJoinedSubscriptionEventMessage = CommonMessage<'Subscription'> & {
     position: [number, number, number];
   };
 };
+
 type PlayerKilledSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'PlayerKilled';
   data: {
@@ -78,6 +86,7 @@ type PlayerKilledSubscriptionEventMessage = CommonMessage<'Subscription'> & {
     };
   };
 };
+
 type PlayerLeftSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'PlayerLeft';
   data: {
@@ -89,6 +98,7 @@ type PlayerLeftSubscriptionEventMessage = CommonMessage<'Subscription'> & {
     position: [number, number, number];
   };
 };
+
 type PlayerMovedChunkSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'PlayerMovedChunk';
   data: {
@@ -100,6 +110,7 @@ type PlayerMovedChunkSubscriptionEventMessage = CommonMessage<'Subscription'> & 
     newChunk: string;
   };
 };
+
 type PlayerStateChangedSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'PlayerStateChanged';
   data: {
@@ -111,6 +122,7 @@ type PlayerStateChangedSubscriptionEventMessage = CommonMessage<'Subscription'> 
     isEnter: boolean;
   };
 };
+
 type PopulationModifiedSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'PopulationModified';
   data: {
@@ -121,10 +133,12 @@ type PopulationModifiedSubscriptionEventMessage = CommonMessage<'Subscription'> 
     action: 'Spawned' | 'Lost';
   };
 };
+
 type ProfilingDataSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'ProfilingData';
   data: unknown;
 };
+
 type TraceLogSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'TraceLog';
   data: {
@@ -133,6 +147,7 @@ type TraceLogSubscriptionEventMessage = CommonMessage<'Subscription'> & {
     logger: string;
   };
 };
+
 type TradeDeckUsedSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'TradeDeckUsed';
   data: {
@@ -144,18 +159,22 @@ type TradeDeckUsedSubscriptionEventMessage = CommonMessage<'Subscription'> & {
     seller: number;
   };
 };
+
 type TrialFinishedSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'TrialFinished';
   data: unknown;
 };
+
 type TrialStartedSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'TrialStarted';
   data: unknown;
 };
+
 type WarnLogSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'WarnLog';
   data: unknown;
 };
+
 type SubscriptionEventMessageUnion =
   | DebugLogSubscriptionEventMessage
   | ErrorLogSubscriptionEventMessage
@@ -175,10 +194,8 @@ type SubscriptionEventMessageUnion =
   | TrialFinishedSubscriptionEventMessage
   | TrialStartedSubscriptionEventMessage
   | WarnLogSubscriptionEventMessage;
+
 export type SubscriptionEventMessage<T extends SubscriptionEvent> = Extract<
   SubscriptionEventMessageUnion,
-  {
-    eventType: T;
-  }
+  { eventType: T }
 >;
-export {};
