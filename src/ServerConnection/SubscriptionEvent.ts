@@ -3,6 +3,7 @@ export type SubscriptionEvent =
   | 'ErrorLog'
   | 'FatalLog'
   | 'InfoLog'
+  | 'InventoryChanged'
   | 'ObjectKilled'
   | 'PlayerJoined'
   | 'PlayerKilled'

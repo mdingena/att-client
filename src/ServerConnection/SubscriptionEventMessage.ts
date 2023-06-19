@@ -21,6 +21,27 @@ type InfoLogSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   data: unknown;
 };
 
+type InventoryChangedSubscriptionEventMessage = CommonMessage<'Subscription'> & {
+  eventType: 'InventoryChanged';
+  data: {
+    User: {
+      id: number;
+      username: string;
+    };
+    ItemName: string;
+    Quantity: number;
+    ItemHash?: string;
+    Material?: string;
+    SaveString: string;
+    ChangeType: 'Pickup' | 'Drop' | 'Dock' | 'UnDock';
+    InventoryType: 'World' | 'Player';
+    DestinationUser?: {
+      id: number;
+      username: string;
+    };
+  };
+};
+
 type ObjectKilledSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'ObjectKilled';
   data: {
@@ -159,6 +180,7 @@ type SubscriptionEventMessageUnion =
   | ErrorLogSubscriptionEventMessage
   | FatalLogSubscriptionEventMessage
   | InfoLogSubscriptionEventMessage
+  | InventoryChangedSubscriptionEventMessage
   | ObjectKilledSubscriptionEventMessage
   | PlayerJoinedSubscriptionEventMessage
   | PlayerKilledSubscriptionEventMessage
