@@ -16,4 +16,5 @@ export type SubscriptionEvent =
   | 'TradeDeckUsed'
   | 'TrialFinished'
   | 'TrialStarted'
+  | 'SocialTabletPlayerReported'
   | 'WarnLog';

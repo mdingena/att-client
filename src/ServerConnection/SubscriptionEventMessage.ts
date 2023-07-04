@@ -41,7 +41,20 @@ type InventoryChangedSubscriptionEventMessage = CommonMessage<'Subscription'> & 
     };
   };
 };
-
+type SocialTabletPlayerReportedSubscriptionEventMessage = CommonMessage<'Subscription'> & {
+  eventType: 'SocialTabletPlayerReported';
+  data: {
+    ReportedBy: {
+      id: number;
+      username: string;
+    };
+    ReportedPlayer: {
+      id: number;
+      username: string;
+    };
+    Reason: string;
+  };
+};
 type ObjectKilledSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'ObjectKilled';
   data: {
@@ -193,6 +206,7 @@ type SubscriptionEventMessageUnion =
   | TradeDeckUsedSubscriptionEventMessage
   | TrialFinishedSubscriptionEventMessage
   | TrialStartedSubscriptionEventMessage
+  | SocialTabletPlayerReportedSubscriptionEventMessage
   | WarnLogSubscriptionEventMessage;
 
 export type SubscriptionEventMessage<T extends SubscriptionEvent> = Extract<
