@@ -41,6 +41,7 @@ type InventoryChangedSubscriptionEventMessage = CommonMessage<'Subscription'> & 
     };
   };
 };
+
 type SocialTabletPlayerReportedSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'SocialTabletPlayerReported';
   data: {
@@ -55,6 +56,7 @@ type SocialTabletPlayerReportedSubscriptionEventMessage = CommonMessage<'Subscri
     Reason: string;
   };
 };
+
 type ObjectKilledSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'ObjectKilled';
   data: {
