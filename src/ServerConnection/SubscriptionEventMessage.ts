@@ -42,21 +42,6 @@ type InventoryChangedSubscriptionEventMessage = CommonMessage<'Subscription'> & 
   };
 };
 
-type SocialTabletPlayerReportedSubscriptionEventMessage = CommonMessage<'Subscription'> & {
-  eventType: 'SocialTabletPlayerReported';
-  data: {
-    ReportedBy: {
-      id: number;
-      username: string;
-    };
-    ReportedPlayer: {
-      id: number;
-      username: string;
-    };
-    Reason: string;
-  };
-};
-
 type ObjectKilledSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'ObjectKilled';
   data: {
@@ -152,6 +137,21 @@ type PopulationModifiedSubscriptionEventMessage = CommonMessage<'Subscription'> 
 type ProfilingDataSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'ProfilingData';
   data: unknown;
+};
+
+type SocialTabletPlayerReportedSubscriptionEventMessage = CommonMessage<'Subscription'> & {
+  eventType: 'SocialTabletPlayerReported';
+  data: {
+    ReportedBy: {
+      id: number;
+      username: string;
+    };
+    ReportedPlayer: {
+      id: number;
+      username: string;
+    };
+    Reason: string;
+  };
 };
 
 type TraceLogSubscriptionEventMessage = CommonMessage<'Subscription'> & {

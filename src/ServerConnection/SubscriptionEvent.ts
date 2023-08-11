@@ -12,9 +12,9 @@ export type SubscriptionEvent =
   | 'PlayerStateChanged'
   | 'PopulationModified'
   | 'ProfilingData'
+  | 'SocialTabletPlayerReported'
   | 'TraceLog'
   | 'TradeDeckUsed'
   | 'TrialFinished'
   | 'TrialStarted'
-  | 'SocialTabletPlayerReported'
   | 'WarnLog';
