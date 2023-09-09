@@ -139,6 +139,21 @@ type ProfilingDataSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   data: unknown;
 };
 
+type SocialTabletPlayerReportedSubscriptionEventMessage = CommonMessage<'Subscription'> & {
+  eventType: 'SocialTabletPlayerReported';
+  data: {
+    ReportedBy: {
+      id: number;
+      username: string;
+    };
+    ReportedPlayer: {
+      id: number;
+      username: string;
+    };
+    Reason: string;
+  };
+};
+
 type TraceLogSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'TraceLog';
   data: {
@@ -193,6 +208,7 @@ type SubscriptionEventMessageUnion =
   | TradeDeckUsedSubscriptionEventMessage
   | TrialFinishedSubscriptionEventMessage
   | TrialStartedSubscriptionEventMessage
+  | SocialTabletPlayerReportedSubscriptionEventMessage
   | WarnLogSubscriptionEventMessage;
 
 export type SubscriptionEventMessage<T extends SubscriptionEvent> = Extract<
