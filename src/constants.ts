@@ -4,7 +4,7 @@ import { Verbosity } from './Logger/index.js';
 
 export const AGENT = {
   name: 'att-client',
-  version: '0.4.12'
+  version: '0.4.13'
 };
 
 const SECOND = 1000;
