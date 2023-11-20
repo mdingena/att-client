@@ -111,7 +111,7 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
       this.on('message', handleMessage);
 
       this.send(token, error => {
-        if (typeof error !== 'undefined') {
+        if (error) {
           that.server.group.client.logger.error(
             `Couldn't authenticate console ${that.server.id} (${that.server.name}) connection.`,
             error.message
