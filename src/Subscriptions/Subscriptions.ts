@@ -491,7 +491,7 @@ export class Subscriptions {
         });
 
         this.client.logger.debug(`Sending message-${id}.`, message);
-        this.ws.send(message, error => typeof error !== 'undefined' && reject(this.createErrorMessage(error.message)));
+        this.ws.send(message, error => error && reject(this.createErrorMessage(error.message ?? 'Unknown error.')));
       }
     ).catch((message: ClientErrorMessage) => {
       this.client.logger.error('Subscriptions.send() error:', message.content.message);
