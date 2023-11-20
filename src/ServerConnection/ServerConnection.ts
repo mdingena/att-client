@@ -175,7 +175,7 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
           `Sending command-${id} to ${this.server.id} (${this.server.name}).`,
           message
         );
-        this.ws.send(message, error => typeof error !== 'undefined' && reject(error));
+        this.ws.send(message, error => error && reject(error));
       }
     );
   }
