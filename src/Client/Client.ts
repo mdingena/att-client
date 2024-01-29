@@ -3,7 +3,7 @@ import type { Config } from './Config.js';
 import type { Server } from '../Server/index.js';
 import type { ServerConnection } from '../ServerConnection/index.js';
 import { createHash } from 'node:crypto';
-import { TypedEmitter } from 'tiny-typed-emitter';
+import { TypedEmitter } from '@mdingena/tiny-typed-emitter';
 import jwtDecode from 'jwt-decode';
 import { Api, DecodedToken, Endpoint } from '../Api/index.js';
 import { Group } from '../Group/index.js';

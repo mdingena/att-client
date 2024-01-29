@@ -1,6 +1,6 @@
 import type { ServerFleet, ServerInfo } from '../Api/index.js';
 import type { Group } from '../Group/index.js';
-import { TypedEmitter } from 'tiny-typed-emitter';
+import { TypedEmitter } from '@mdingena/tiny-typed-emitter';
 import { ServerConnection } from '../ServerConnection/index.js';
 
 type Player = {

@@ -30,8 +30,8 @@
     "prepare:husky": "husky install"
   },
   "dependencies": {
+    "@mdingena/tiny-typed-emitter": "^3.0.0",
     "jwt-decode": "^3.1.2",
-    "tiny-typed-emitter": "^2.1.0",
     "ws": "^8.6.0"
   },
   "devDependencies": {

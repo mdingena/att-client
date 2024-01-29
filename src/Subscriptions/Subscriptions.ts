@@ -3,7 +3,7 @@ import type { ClientEvent } from './ClientEvent.js';
 import type { ClientEventMessage } from './ClientEventMessage.js';
 import type { ClientErrorMessage } from './ClientErrorMessage.js';
 import type { ClientResponseMessage } from './ClientResponseMessage.js';
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { WebSocket } from 'ws';
 import { HttpMethod, HttpResponseCode } from '../Api/index.js';
 import { Workers } from '../Workers/index.js';
