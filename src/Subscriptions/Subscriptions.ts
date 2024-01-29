@@ -36,6 +36,12 @@ export class Subscriptions {
    * Initialises a WebSocket connection with the Alta server.
    */
   async init(): Promise<void> {
+    if (typeof this.resolveHalted === 'undefined') {
+      this.halted = new Promise(resolve => {
+        this.resolveHalted = resolve;
+      });
+    }
+
     if (typeof this.client.accessToken === 'undefined') {
       this.client.logger.error(
         "Can't initialise subscriptions without an access token. Ordering client to refresh tokens."
@@ -46,6 +52,8 @@ export class Subscriptions {
     }
 
     this.ws = await this.createWebSocket(this.client.accessToken, this.migrationId);
+
+    this.clearHalted();
   }
 
   /**
@@ -548,5 +556,9 @@ export class Subscriptions {
       responseCode: 0,
       content: { message: reason, error_code: code?.toString() ?? 'None' }
     };
+  }
+
+  getSize(): number {
+    return Object.keys(this.subscriptions).length;
   }
 }

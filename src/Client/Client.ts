@@ -8,9 +8,9 @@ import jwtDecode from 'jwt-decode';
 import { Api, DecodedToken, Endpoint } from '../Api/index.js';
 import { Group } from '../Group/index.js';
 import { Logger, Verbosity } from '../Logger/index.js';
-import { Subscriptions } from '../Subscriptions/index.js';
 import { Workers } from '../Workers/index.js';
 import { AGENT, DEFAULTS, MAX_WORKER_CONCURRENCY_WARNING } from '../constants.js';
+import { SubscriptionsManager } from '../SubscriptionsManager/SubscriptionsManager.js';
 
 interface Events {
   connect: (serverConnection: ServerConnection) => void;
@@ -32,7 +32,7 @@ export class Client extends TypedEmitter<Events> {
   groups: Groups;
   logger: Logger;
   name: string;
-  subscriptions: Subscriptions;
+  subscriptions: SubscriptionsManager;
 
   private decodedToken?: DecodedToken;
   private readyState: ReadyState;
@@ -123,6 +123,7 @@ export class Client extends TypedEmitter<Events> {
       includedGroups: config.includedGroups ?? DEFAULTS.includedGroups,
       logVerbosity: configuredLogVerbosity,
       maxWorkerConcurrency: config.maxWorkerConcurrency ?? DEFAULTS.maxWorkerConcurrency,
+      maxSubscriptionsPerWebSocket: config.maxSubscriptionsPerWebSocket ?? DEFAULTS.maxSubscriptionsPerWebSocket,
       restBaseUrl: config.restBaseUrl ?? DEFAULTS.restBaseUrl,
       serverConnectionRecoveryDelay: config.serverConnectionRecoveryDelay ?? DEFAULTS.serverConnectionRecoveryDelay,
       serverHeartbeatTimeout: config.serverHeartbeatTimeout ?? DEFAULTS.serverHeartbeatTimeout,
@@ -146,7 +147,7 @@ export class Client extends TypedEmitter<Events> {
     this.groups = {};
     this.name = `${AGENT.name} v${AGENT.version}`;
     this.readyState = ReadyState.Stopped;
-    this.subscriptions = new Subscriptions(this);
+    this.subscriptions = new SubscriptionsManager(this);
   }
 
   /**
@@ -169,10 +170,6 @@ export class Client extends TypedEmitter<Events> {
     /* Handle bot automation. */
     if ('client_sub' in decodedToken) {
       const userId = decodedToken.client_sub;
-
-      /* Initialise subscriptions. */
-      this.logger.info('Subscribing to events.');
-      await this.subscriptions.init();
 
       try {
         /* Subscribe to account messages. */

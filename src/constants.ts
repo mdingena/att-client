@@ -12,6 +12,8 @@ const MINUTE = 60 * SECOND;
 
 const MAX_WORKER_CONCURRENCY = 5;
 
+const MAX_SUBSCRIPTIONS_PER_WEBSOCKET = 50;
+
 export const MAX_WORKER_CONCURRENCY_WARNING = 10;
 
 const REST_BASE_URL = 'https://webapi.townshiptale.com/api';
@@ -51,6 +53,7 @@ export const DEFAULTS: Required<Omit<Config, 'clientId' | 'clientSecret' | 'scop
   logVerbosity: Verbosity.Warning,
   restBaseUrl: REST_BASE_URL,
   maxWorkerConcurrency: MAX_WORKER_CONCURRENCY,
+  maxSubscriptionsPerWebSocket: MAX_SUBSCRIPTIONS_PER_WEBSOCKET,
   serverConnectionRecoveryDelay: SERVER_CONNECTION_RECOVERY_DELAY,
   serverHeartbeatTimeout: SERVER_HEARTBEAT_TIMEOUT,
   supportedServerFleets: SUPPORTED_SERVER_FLEETS,

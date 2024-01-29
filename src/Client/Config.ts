@@ -22,6 +22,7 @@ interface CommonConfig {
   includedGroups?: number[];
   logVerbosity?: Verbosity;
   maxWorkerConcurrency?: number;
+  maxSubscriptionsPerWebSocket?: number;
   restBaseUrl?: string;
   serverConnectionRecoveryDelay?: number;
   serverHeartbeatTimeout?: number;
