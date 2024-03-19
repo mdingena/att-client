@@ -1,4 +1,6 @@
 export type SubscriptionEvent =
+  | 'AtmBalanceChanged'
+  | 'CommandExecuted'
   | 'DebugLog'
   | 'ErrorLog'
   | 'FatalLog'
@@ -13,6 +15,7 @@ export type SubscriptionEvent =
   | 'PopulationModified'
   | 'ProfilingData'
   | 'SocialTabletPlayerReported'
+  | 'SocialTabletPlayerBanned'
   | 'TraceLog'
   | 'TradeDeckUsed'
   | 'TrialFinished'
