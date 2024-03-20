@@ -5,6 +5,7 @@
 - [`Config.console`](#configconsole)
 - [`Config.excludedGroups`](#configexcludedgroups)
 - [`Config.includedGroups`](#configincludedgroups)
+- [`Config.logPrefix`](#configlogprefix)
 - [`Config.logVerbosity`](#configlogverbosity)
 - [`Config.maxWorkerConcurrency`](#configmaxworkerconcurrency)
 - [`Config.password`](#configpassword)
@@ -112,6 +113,13 @@ This option allows you to prevent your [`Client`](./Client.md) from executing it
 - Defaults to `[]`, which means **all groups** are included.
 
 This option allows you to restrict your [`Client`](./Client.md) to only execute its logic on the listed groups and all their servers.
+
+## `Config.logPrefix`
+
+- `<string>` The text you want to use to prefix logs from the client.
+- Defaults to `[att-client]`.
+
+This option helps you differentiate att-client logs with your other application logs.
 
 ## `Config.logVerbosity`
 

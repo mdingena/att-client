@@ -50,6 +50,7 @@ export const DEFAULTS: Required<Omit<Config, 'clientId' | 'clientSecret' | 'scop
   console: console,
   excludedGroups: [],
   includedGroups: [],
+  logPrefix: '[att-client]',
   logVerbosity: Verbosity.Warning,
   restBaseUrl: REST_BASE_URL,
   maxWorkerConcurrency: MAX_WORKER_CONCURRENCY,

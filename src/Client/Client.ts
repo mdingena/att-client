@@ -43,22 +43,32 @@ export class Client extends TypedEmitter<Events> {
 
     /* Configure logging console. */
     const configuredConsole = config.console ?? DEFAULTS.console;
+    const configuredLogPrefix = config.logPrefix ?? DEFAULTS.logPrefix;
 
     /* Configure log verbosity. */
     if (typeof config.logVerbosity === 'undefined') {
       configuredConsole.warn(
-        "Using Warning log verbosity. You will only see Errors and Warnings. If you want to see more verbose logs, create your client with a higher 'logVerbosity'."
+        `${configuredLogPrefix}${
+          configuredLogPrefix.length === 0 ? '' : ' '
+        }Using Warning log verbosity. You will only see Errors and Warnings. If you want to see more verbose logs, create your client with a higher 'logVerbosity'.`
       );
     } else if (config.logVerbosity >= Verbosity.Debug) {
       configuredConsole.warn(
-        'You are using Debug log verbosity. This is not recommended for production environments as sensitive information like configured credentials will appear in your logs. Please consider using Info log verbosity or lower for production.'
+        `${configuredLogPrefix}${
+          configuredLogPrefix.length === 0 ? '' : ' '
+        }You are using Debug log verbosity. This is not recommended for production environments as sensitive information like configured credentials will appear in your logs. Please consider using Info log verbosity or lower for production.`
       );
     }
 
     const configuredLogVerbosity = config.logVerbosity ?? DEFAULTS.logVerbosity;
 
     /* Create logger. */
-    this.logger = new Logger(configuredLogVerbosity, configuredConsole);
+    this.logger = new Logger({
+      console: configuredConsole,
+      prefix: configuredLogPrefix,
+      verbosity: configuredLogVerbosity
+    });
+
     this.logger.info('Configuring client.');
 
     /* Validate required configuration. */
@@ -121,6 +131,7 @@ export class Client extends TypedEmitter<Events> {
           ? config.excludedGroups
           : DEFAULTS.excludedGroups,
       includedGroups: config.includedGroups ?? DEFAULTS.includedGroups,
+      logPrefix: configuredLogPrefix,
       logVerbosity: configuredLogVerbosity,
       maxWorkerConcurrency: config.maxWorkerConcurrency ?? DEFAULTS.maxWorkerConcurrency,
       maxSubscriptionsPerWebSocket: config.maxSubscriptionsPerWebSocket ?? DEFAULTS.maxSubscriptionsPerWebSocket,

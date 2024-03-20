@@ -20,6 +20,7 @@ interface CommonConfig {
   console?: Pick<Console, 'error' | 'warn' | 'info' | 'debug'>;
   excludedGroups?: number[];
   includedGroups?: number[];
+  logPrefix?: string;
   logVerbosity?: Verbosity;
   maxWorkerConcurrency?: number;
   maxSubscriptionsPerWebSocket?: number;
