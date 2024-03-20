@@ -498,7 +498,11 @@ export class Subscriptions {
           content: JSON.stringify(payload)
         });
 
-        this.client.logger.debug(`Sending message-${id}.`, message);
+        this.client.logger.debug(
+          `Sending message-${id}.`,
+          JSON.stringify({ id, method, path, content: JSON.stringify(payload) })
+        );
+
         this.ws.send(message, error => error && reject(this.createErrorMessage(error.message ?? 'Unknown error.')));
       }
     ).catch((message: ClientErrorMessage) => {
