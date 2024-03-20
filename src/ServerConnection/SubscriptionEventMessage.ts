@@ -1,6 +1,27 @@
 import type { CommonMessage } from './CommonMessage.js';
 import type { SubscriptionEvent } from './SubscriptionEvent.js';
 
+type AtmBalanceChangedEventMessage = CommonMessage<'Subscription'> & {
+  eventType: 'AtmBalanceChanged';
+  data: {
+    user: {
+      id: number;
+      username: string;
+    };
+    Change: number;
+    CurrentBalance: number;
+  };
+};
+
+type CommandExecutedEventMessage = CommonMessage<'Subscription'> & {
+  eventType: 'CommandExecuted';
+  data: {
+    Command: string,
+    WasSuccessful: boolean;
+    Message?: string;
+  };
+};
+
 type DebugLogSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'DebugLog';
   data: unknown;
@@ -154,6 +175,21 @@ type SocialTabletPlayerReportedSubscriptionEventMessage = CommonMessage<'Subscri
   };
 };
 
+type SocialTabletPlayerBannedEventMessage = CommonMessage<'Subscription'> & {
+  eventType: 'InventoryChanged';
+  data: {
+    BannedBy: {
+      id: number;
+      username: string;
+    };
+    BannedPlayer: {
+      id: number;
+      username: string;
+    };
+    isBan: boolean;
+  };
+};
+
 type TraceLogSubscriptionEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'TraceLog';
   data: {
@@ -191,6 +227,8 @@ type WarnLogSubscriptionEventMessage = CommonMessage<'Subscription'> & {
 };
 
 type SubscriptionEventMessageUnion =
+  | AtmBalanceChangedEventMessage 
+  | CommandExecutedEventMessage
   | DebugLogSubscriptionEventMessage
   | ErrorLogSubscriptionEventMessage
   | FatalLogSubscriptionEventMessage
@@ -209,6 +247,7 @@ type SubscriptionEventMessageUnion =
   | TrialFinishedSubscriptionEventMessage
   | TrialStartedSubscriptionEventMessage
   | SocialTabletPlayerReportedSubscriptionEventMessage
+  | SocialTabletPlayerBannedEventMessage
   | WarnLogSubscriptionEventMessage;
 
 export type SubscriptionEventMessage<T extends SubscriptionEvent> = Extract<
