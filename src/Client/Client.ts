@@ -357,7 +357,7 @@ export class Client extends TypedEmitter<Events> {
       }
 
       const { access_token: accessToken } = data;
-      this.logger.debug('Found access token.', accessToken);
+      this.logger.debug('Found access token.');
 
       return accessToken as string;
     } catch (error) {
