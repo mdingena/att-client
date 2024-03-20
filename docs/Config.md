@@ -7,6 +7,7 @@
 - [`Config.includedGroups`](#configincludedgroups)
 - [`Config.logPrefix`](#configlogprefix)
 - [`Config.logVerbosity`](#configlogverbosity)
+- [`Config.maxSubscriptionsPerWebSocket`](#configmaxsubscriptionsperwebsocket)
 - [`Config.maxWorkerConcurrency`](#configmaxworkerconcurrency)
 - [`Config.password`](#configpassword)
 - [`Config.restBaseUrl`](#configrestbaseurl)
@@ -139,6 +140,15 @@ enum Verbosity {
 This option changes logging behaviour. The higher `logVerbosity`, the more verbose logging becomes.
 
 :warning: `Debug` verbosity is not recommended for regular operation.
+
+## `Config.maxSubscriptionsPerWebSocket`
+
+- `<number>` Number of subscriptions per WebSocket instance.
+- Defaults to `500`.
+
+This option configures how many subscriptions are bundled per `Subscriptions` instance. When this number of subscriptions is reach on an instance, the next subscription will cause the `SubscriptionsManager` to first create a new `Subscriptions` instance to handle the new subscription.
+
+:warning: It's not recommended that you change this option. It's been proven that setting this too high can lead to WebSocket migration errors, causing dropped subscriptions and loss of your bot's responsiveness.
 
 ## `Config.maxWorkerConcurrency`
 
