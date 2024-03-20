@@ -192,6 +192,10 @@ export class Client extends TypedEmitter<Events> {
             try {
               const { id, name } = message.content;
 
+              if (typeof id === 'undefined') {
+                throw new Error('me-group-invite-create subscription message did not contain group information.');
+              }
+
               this.logger.info(`Accepting invite to group ${id} (${name})`);
               this.api.acceptGroupInvite(id);
             } catch (error) {
@@ -203,6 +207,10 @@ export class Client extends TypedEmitter<Events> {
           this.subscriptions.subscribe('me-group-create', userId, async message => {
             try {
               const { group, member } = message.content;
+
+              if (typeof group === 'undefined' || typeof member === 'undefined') {
+                throw new Error('me-group-create subscription message did not contain group or member information.');
+              }
 
               this.logger.info(`Client was added to group ${group.id} (${group.name}).`);
 
@@ -216,11 +224,14 @@ export class Client extends TypedEmitter<Events> {
           /* Subscribe to and handle server group left message. */
           this.subscriptions.subscribe('me-group-delete', userId, message => {
             try {
-              const groupId = message.content.group.id;
-              const groupName = message.content.group.name;
+              const { group } = message.content;
 
-              this.logger.info(`Client was removed from group ${groupId} (${groupName}).`);
-              this.removeGroup(groupId);
+              if (typeof group === 'undefined') {
+                throw new Error('me-group-delete subscription message did not contain group information.');
+              }
+
+              this.logger.info(`Client was removed from group ${group.id} (${group.name}).`);
+              this.removeGroup(group.id);
             } catch (error) {
               this.logger.error(`Error while leaving group: ${(error as Error).message}`);
             }
