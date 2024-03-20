@@ -67,7 +67,10 @@ export class SubscriptionsManager {
 
     this.subscriptionsMap.delete(subscription);
 
-    if (subscriptions.getSize() === 0) this.instances.delete(instanceId);
+    if (subscriptions.getSize() === 0) {
+      this.client.logger.debug(`Subscriptions instance ${instanceId} is empty. Cleaning up.`);
+      this.instances.delete(instanceId);
+    }
 
     return unsubscribeResult;
   }
@@ -90,11 +93,15 @@ export class SubscriptionsManager {
       if (subscriptions.getSize() < maxSubscriptions) return [instanceId, subscriptions] as const;
     }
 
+    this.client.logger.debug('Increasing the Subscriptions instance pool.');
+
     const subscriptions = new Subscriptions(this.client);
     const instanceId = this.getInstanceId();
     this.instances.set(instanceId, subscriptions);
 
     await subscriptions.init();
+
+    this.client.logger.debug(`Created new Subscriptions instance with ID ${instanceId}.`);
 
     return [instanceId, subscriptions] as const;
   }
