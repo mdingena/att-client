@@ -1,7 +1,6 @@
 import type { CommonMessage } from './CommonMessage.js';
 import type { SubscriptionEvent } from './SubscriptionEvent.js';
 
-
 type AtmBalanceChangedEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'AtmBalanceChanged';
   data: {
@@ -17,7 +16,7 @@ type AtmBalanceChangedEventMessage = CommonMessage<'Subscription'> & {
 type CommandExecutedEventMessage = CommonMessage<'Subscription'> & {
   eventType: 'CommandExecuted';
   data: {
-    Command: String,
+    Command: string,
     WasSuccessful: boolean;
     Message?: string;
   };
