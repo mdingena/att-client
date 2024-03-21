@@ -95,8 +95,8 @@ export class SubscriptionsManager {
 
     this.client.logger.debug('Increasing the Subscriptions instance pool.');
 
-    const subscriptions = new Subscriptions(this.client);
     const instanceId = this.getInstanceId();
+    const subscriptions = new Subscriptions(this.client, instanceId);
     this.instances.set(instanceId, subscriptions);
 
     await subscriptions.init();

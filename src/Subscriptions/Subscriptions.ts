@@ -15,6 +15,7 @@ export class Subscriptions {
   halted: Promise<void>;
 
   private events: EventEmitter;
+  private instanceId: number;
   private messageId: number;
   private migrationDelay?: NodeJS.Timeout;
   private migrationId: number;
@@ -23,8 +24,9 @@ export class Subscriptions {
   private subscriptions: Record<string, (message: ClientEventMessage<ClientEvent>) => void>;
   private ws?: WebSocket;
 
-  constructor(client: Client) {
+  constructor(client: Client, instanceId: number) {
     this.events = new EventEmitter();
+    this.instanceId = instanceId;
     this.client = client;
     this.halted = Promise.resolve();
     this.messageId = 1;
@@ -465,13 +467,13 @@ export class Subscriptions {
 
         const id = this.getMessageId();
 
-        this.client.logger.debug(`Registering one-time event handler for message-${id}.`);
+        this.client.logger.debug(`Registering one-time event handler for message-${this.instanceId}-${id}.`);
         this.events.once(`message-${id}`, (message: ClientResponseMessage<`${M} /ws/${P}`> | ClientErrorMessage) => {
           if (message.responseCode === HttpResponseCode.Ok) {
             resolve(message as ClientResponseMessage<`${M} /ws/${P}`>);
           } else if (attemptsLeft > 0) {
             this.client.logger.debug(
-              `Message-${id} has a non-200 responseCode. Retrying request in ${this.client.config.webSocketRequestRetryDelay} ms.`
+              `Message-${this.instanceId}-${id} has a non-200 responseCode. Retrying request in ${this.client.config.webSocketRequestRetryDelay} ms.`
             );
 
             setTimeout(async () => {
@@ -499,7 +501,7 @@ export class Subscriptions {
         });
 
         this.client.logger.debug(
-          `Sending message-${id}.`,
+          `Sending message-${this.instanceId}-${id}.`,
           JSON.stringify({ id, method, path, content: JSON.stringify(payload) })
         );
 
