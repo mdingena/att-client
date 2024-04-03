@@ -130,13 +130,16 @@ export class Subscriptions {
 
           if (typeof message.content === 'undefined') {
             that.client.logger.error(
-              `Received a message with ID ${message.id} but no content.`,
+              `Received a message with ID ${that.instanceId}-${message.id} but no content.`,
               JSON.stringify(message)
             );
             return;
           }
 
-          that.client.logger.debug(`Received ${message.event} message with ID ${message.id}.`, JSON.stringify(message));
+          that.client.logger.debug(
+            `Received ${message.event} message with ID ${that.instanceId}-${message.id}.`,
+            JSON.stringify(message)
+          );
 
           const eventName = message.id === 0 ? `${message.event}/${message.key}` : `message-${message.id}`;
           that.events.emit(eventName, {
