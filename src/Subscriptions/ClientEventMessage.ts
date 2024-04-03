@@ -12,6 +12,10 @@ type GroupMemberUpdateMessage = EventMessage<'group-member-update'> & {
   content: GroupMemberInfo;
 };
 
+type GroupServerHeartbeatMessage = EventMessage<'group-server-heartbeat'> & {
+  content: ServerInfo;
+};
+
 type GroupServerStatusMessage = EventMessage<'group-server-status'> & {
   content: ServerInfo;
 };
@@ -44,6 +48,7 @@ type MeGroupCreateMessage = EventMessage<'me-group-create'> & {
 
 type ClientEventMessageUnion =
   | GroupMemberUpdateMessage
+  | GroupServerHeartbeatMessage
   | GroupServerStatusMessage
   | GroupUpdateMessage
   | MeGroupCreateMessage

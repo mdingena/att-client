@@ -2,6 +2,7 @@ export type ClientEvent =
   | 'group-member-update'
   | 'group-server-create'
   | 'group-server-delete'
+  | 'group-server-heartbeat'
   | 'group-server-status'
   | 'group-server-update'
   | 'group-update'
