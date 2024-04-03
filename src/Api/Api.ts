@@ -2,6 +2,8 @@ import type { ApiRequest } from './ApiRequest.js';
 import type { ApiResponse } from './ApiResponse.js';
 import type { HttpMethod } from './HttpMethod.js';
 import type { Client } from '../Client/index.js';
+import type { InvitedGroupInfo } from './schemas/InvitedGroupInfo.js';
+import type { JoinedGroupInfo } from './schemas/JoinedGroupInfo.js';
 import { Endpoint } from './Endpoint.js';
 
 type Parameters = Record<string, string | number>;
@@ -67,18 +69,46 @@ export class Api {
    * membership info for each group.
    */
   async getJoinedGroups() {
-    const response = await this.request('GET', Endpoint.JoinedGroups, undefined, { limit: 1000 });
+    const joinedGroups: JoinedGroupInfo[] = [];
 
-    return await response.json();
+    let response: ApiResponse<'GET', Endpoint.JoinedGroups>;
+    let paginationToken: string | null = null;
+
+    do {
+      response = await this.request('GET', Endpoint.JoinedGroups, undefined, {
+        limit: 1000,
+        ...(paginationToken === null ? {} : { paginationToken })
+      });
+
+      paginationToken = response.headers.get('paginationToken');
+
+      joinedGroups.push(...(await response.json()));
+    } while (paginationToken !== null);
+
+    return joinedGroups;
   }
 
   /**
    * Gets all open group invitations for this client.
    */
   async getPendingGroupInvites() {
-    const response = await this.request('GET', Endpoint.GroupInvites, undefined, { limit: 1000 });
+    const pendingInvites: InvitedGroupInfo[] = [];
 
-    return await response.json();
+    let response: ApiResponse<'GET', Endpoint.GroupInvites>;
+    let paginationToken: string | null = null;
+
+    do {
+      response = await this.request('GET', Endpoint.GroupInvites, undefined, {
+        limit: 1000,
+        ...(paginationToken === null ? {} : { paginationToken })
+      });
+
+      paginationToken = response.headers.get('paginationToken');
+
+      pendingInvites.push(...(await response.json()));
+    } while (paginationToken !== null);
+
+    return pendingInvites;
   }
 
   /**
