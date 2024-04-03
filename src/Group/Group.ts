@@ -254,7 +254,7 @@ export class Group extends TypedEmitter<Events> {
   private async handleHeartbeat(status: ServerInfo) {
     if (status.is_online) {
       this.missedHeartbeats = 0;
-      clearTimeout(this.keepAlive);
+      clearInterval(this.keepAlive);
 
       this.keepAlive = setInterval(() => {
         const serverId = status.id;
