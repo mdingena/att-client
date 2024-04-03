@@ -5,6 +5,8 @@ type ServerOnlinePlayers = {
 
 export type ServerFleet = 'att-release' | 'att-quest';
 
+type JoinType = 'PrivateGroup' | 'Public' | 'OpenGroup' | 'SupporterOnly' | 'WorldInstance' | 'PublicGroup';
+
 export type ServerInfo = {
   id: number;
   name: string;
@@ -25,4 +27,10 @@ export type ServerInfo = {
   type: string;
   fleet: ServerFleet;
   up_time: string; // "00:00:00"
+  join_type: JoinType;
+  player_count: number;
+  player_limit: number;
+  created_at: string; // "2022-04-01T09:18:21.5841305Z"
+  is_online: boolean;
+  transport_system: number;
 };
