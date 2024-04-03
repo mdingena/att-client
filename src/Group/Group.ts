@@ -277,6 +277,7 @@ export class Group extends TypedEmitter<Events> {
           );
 
           server.disconnect();
+          clearInterval(this.keepAlive);
         }
       }, this.client.config.serverHeartbeatInterval);
     }
