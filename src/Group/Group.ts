@@ -117,7 +117,7 @@ export class Group extends TypedEmitter<Events> {
        * Subscribe to servers being created in this group.
        *
        * WARNING: This subscription is untested because currently only developers are
-       * capable or creating servers. Currently, all groups have a single server but
+       * capable of creating servers. Currently, all groups have a single server but
        * it's possible that in the future any single group can have more than one
        * server that may be created by players themselves.
        */
@@ -141,7 +141,7 @@ export class Group extends TypedEmitter<Events> {
        * Subscribe to servers being deleted in this group.
        *
        * WARNING: This subscription is untested because currently only developers are
-       * capable or deleting servers. Currently, all groups have a single server but
+       * capable of deleting servers. Currently, all groups have a single server but
        * it's possible that in the future any single group can have more than one
        * server that may be deleted by players themselves.
        */
