@@ -22,11 +22,12 @@ interface CommonConfig {
   includedGroups?: number[];
   logPrefix?: string;
   logVerbosity?: Verbosity;
+  maxMissedServerHeartbeats?: number;
   maxSubscriptionsPerWebSocket?: number;
   maxWorkerConcurrency?: number;
   restBaseUrl?: string;
   serverConnectionRecoveryDelay?: number;
-  serverHeartbeatTimeout?: number;
+  serverHeartbeatInterval?: number;
   supportedServerFleets?: ServerFleet[];
   tokenUrl?: string;
   webSocketMigrationHandoverPeriod?: number;

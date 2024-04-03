@@ -133,11 +133,12 @@ export class Client extends TypedEmitter<Events> {
       includedGroups: config.includedGroups ?? DEFAULTS.includedGroups,
       logPrefix: configuredLogPrefix,
       logVerbosity: configuredLogVerbosity,
+      maxMissedServerHeartbeats: config.maxMissedServerHeartbeats ?? DEFAULTS.maxMissedServerHeartbeats,
       maxSubscriptionsPerWebSocket: config.maxSubscriptionsPerWebSocket ?? DEFAULTS.maxSubscriptionsPerWebSocket,
       maxWorkerConcurrency: config.maxWorkerConcurrency ?? DEFAULTS.maxWorkerConcurrency,
       restBaseUrl: config.restBaseUrl ?? DEFAULTS.restBaseUrl,
       serverConnectionRecoveryDelay: config.serverConnectionRecoveryDelay ?? DEFAULTS.serverConnectionRecoveryDelay,
-      serverHeartbeatTimeout: config.serverHeartbeatTimeout ?? DEFAULTS.serverHeartbeatTimeout,
+      serverHeartbeatInterval: config.serverHeartbeatInterval ?? DEFAULTS.serverHeartbeatInterval,
       supportedServerFleets: config.supportedServerFleets ?? DEFAULTS.supportedServerFleets,
       tokenUrl: config.tokenUrl ?? DEFAULTS.tokenUrl,
       webSocketMigrationHandoverPeriod:

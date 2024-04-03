@@ -25,6 +25,8 @@ export class Group extends TypedEmitter<Events> {
   roles: Role[];
   servers: Servers;
 
+  private keepAlive: NodeJS.Timer | undefined;
+  private missedHeartbeats: number;
   private userId: number;
 
   constructor(client: Client, group: GroupInfo, member: GroupMemberInfo) {
@@ -33,6 +35,8 @@ export class Group extends TypedEmitter<Events> {
     this.client = client;
     this.description = group.description ?? '';
     this.id = group.id;
+    this.keepAlive = undefined;
+    this.missedHeartbeats = 0;
     this.name = group.name ?? '';
     this.permissions = this.getPermissions(group, member);
     this.roles = [];
@@ -110,6 +114,20 @@ export class Group extends TypedEmitter<Events> {
           this.manageServerConnection(status);
         } catch (error) {
           this.client.logger.error(`Error while handling server update: ${(error as Error).message}`);
+        }
+      }),
+
+      /**
+       * Subscribe to server heartbeats for accurate online/offline status.
+       */
+      this.client.subscriptions.subscribe('group-server-heartbeat', this.id.toString(), async message => {
+        try {
+          const status = message.content;
+
+          this.client.logger.debug(`Heartbeat for server ${status.id} (${status.name}).`, JSON.stringify(status));
+          this.handleHeartbeat(status);
+        } catch (error) {
+          this.client.logger.error(`Error while handling server heartbeat: ${(error as Error).message}`);
         }
       }),
 
@@ -231,6 +249,42 @@ export class Group extends TypedEmitter<Events> {
   }
 
   /**
+   * Tracks server heartbeats.
+   */
+  private async handleHeartbeat(status: ServerInfo) {
+    if (status.is_online) {
+      this.missedHeartbeats = 0;
+      clearTimeout(this.keepAlive);
+
+      this.keepAlive = setInterval(() => {
+        const serverId = status.id;
+        const server = this.servers[serverId];
+
+        if (typeof server === 'undefined') {
+          this.client.logger.error(`Server ${serverId} not found in group ${this.id} (${this.name}).`);
+          return;
+        }
+
+        this.client.logger.info(
+          `No heartbeat received for server ${serverId} (${server.name}) in the last ${
+            this.client.config.serverHeartbeatInterval * ++this.missedHeartbeats
+          } ms.`
+        );
+
+        if (this.missedHeartbeats >= this.client.config.maxMissedServerHeartbeats) {
+          this.client.logger.info(
+            `Maximum missed heartbeats reached for server ${serverId} (${server.name}). Closing connection.`
+          );
+
+          server.disconnect();
+        }
+      }, this.client.config.serverHeartbeatInterval);
+    }
+
+    this.manageServerConnection(status);
+  }
+
+  /**
    * Connects or disconnects a server based on its online status.
    */
   private async manageServerConnection(status: ServerInfo) {
@@ -245,9 +299,7 @@ export class Group extends TypedEmitter<Events> {
     const hasConsolePermission = this.permissions.includes('Console');
     const isSupportedServerFleet = this.client.config.supportedServerFleets.includes(server.fleet);
     const mayConnect = hasConsolePermission && isSupportedServerFleet;
-    const lastHeartbeatAt = +new Date(status.online_ping ?? '2022-06-01T00:00:00.000Z');
-    const timeSinceLastHeartbeat = Date.now() - lastHeartbeatAt;
-    const isServerOnline = timeSinceLastHeartbeat < this.client.config.serverHeartbeatTimeout;
+    const isServerOnline = status.is_online;
     const hasOnlinePlayers = status.online_players.length > 0;
 
     if (server.status === 'disconnected' && mayConnect && isServerOnline && hasOnlinePlayers) {

@@ -7,13 +7,14 @@
 - [`Config.includedGroups`](#configincludedgroups)
 - [`Config.logPrefix`](#configlogprefix)
 - [`Config.logVerbosity`](#configlogverbosity)
+- [`Config.maxMissedServerHeartbeats`](#configmaxmissedserverheartbeats)
 - [`Config.maxSubscriptionsPerWebSocket`](#configmaxsubscriptionsperwebsocket)
 - [`Config.maxWorkerConcurrency`](#configmaxworkerconcurrency)
 - [`Config.password`](#configpassword)
 - [`Config.restBaseUrl`](#configrestbaseurl)
 - [`Config.scope`](#configscope)
 - [`Config.serverConnectionRecoveryDelay`](#configserverconnectionrecoverydelay)
-- [`Config.serverHeartbeatTimeout`](#configserverheartbeattimeout)
+- [`Config.serverHeartbeatInterval`](#configserverheartbeatinterval)
 - [`Config.supportedServerFleets`](#configsupportedserverfleets)
 - [`Config.tokenUrl`](#configtokenurl)
 - [`Config.username`](#configusername)
@@ -35,7 +36,10 @@ interface CommonConfig {
   console?: Pick<Console, 'error' | 'warn' | 'info' | 'debug'>;
   excludedGroups?: number[];
   includedGroups?: number[];
+  logPrefix?: string;
   logVerbosity?: Verbosity;
+  maxMissedServerHeartbeats?: number;
+  maxSubscriptionsPerWebsocket?: number;
   maxWorkerConcurrency?: number;
   restBaseUrl?: string;
   serverConnectionRecoveryDelay?: number;
@@ -141,6 +145,13 @@ This option changes logging behaviour. The higher `logVerbosity`, the more verbo
 
 :warning: `Debug` verbosity is not recommended for regular operation.
 
+## `Config.maxMissedServerHeartbeats`
+
+- `<number>` Number of allowed missed server heartbeats.
+- Defaults to 3.
+
+When a server has missed this number of expected `heartbeat` WebSocket events, the server is considered to be offline and the console connection will be closed.
+
 ## `Config.maxSubscriptionsPerWebSocket`
 
 - `<number>` Number of subscriptions per WebSocket instance.
@@ -203,12 +214,14 @@ type Scope =
 
 This option sets your [`Client`](./Client.md)'s scope. This option should match the scope that is associated with the client ID and is provided to you by Alta.
 
-## `Config.serverHeartbeatTimeout`
+## `Config.serverHeartbeatInterval`
 
 - `<number>` Time in milliseconds.
-- Defaults to 10 minutes.
+- Defaults to 20 seconds.
 
-This option configures how long a server with an idle console connection is to be considered "online". When this timeout expires, the console connection will be closed.
+This option configures how long to wait for a server's `heartbeat` WebSocket event. `heartbeat` events are expected to arrive every 15 seconds while a server is online, giving the server a 5-second grace period by default. If you want to change this option, it is not recommended that you set it lower than 15 seconds.
+
+:warning: It's not recommended that you change this option.
 
 ## `Config.serverConnectionRecoveryDelay`
 
