@@ -256,15 +256,15 @@ export class Group extends TypedEmitter<Events> {
       this.missedHeartbeats = 0;
       clearInterval(this.keepAlive);
 
+      const serverId = status.id;
+      const server = await this.ensureServer(serverId);
+
+      if (typeof server === 'undefined') {
+        this.client.logger.error(`Server ${serverId} not found in group ${this.id} (${this.name}).`);
+        return;
+      }
+
       this.keepAlive = setInterval(() => {
-        const serverId = status.id;
-        const server = this.servers[serverId];
-
-        if (typeof server === 'undefined') {
-          this.client.logger.error(`Server ${serverId} not found in group ${this.id} (${this.name}).`);
-          return;
-        }
-
         this.client.logger.info(
           `No heartbeat received for server ${serverId} (${server.name}) in the last ${
             this.client.config.serverHeartbeatInterval * ++this.missedHeartbeats
@@ -290,7 +290,7 @@ export class Group extends TypedEmitter<Events> {
    */
   private async manageServerConnection(status: ServerInfo) {
     const serverId = status.id;
-    const server = this.servers[serverId];
+    const server = await this.ensureServer(serverId);
 
     if (typeof server === 'undefined') {
       this.client.logger.error(`Server ${serverId} not found in group ${this.id} (${this.name}).`);
@@ -310,6 +310,7 @@ export class Group extends TypedEmitter<Events> {
         this.client.logger.error(`Couldn't connect to server ${serverId}: ${(error as Error).message}`);
       }
     } else if (server.status !== 'disconnected' && (!mayConnect || !isServerOnline)) {
+      clearInterval(this.keepAlive);
       server.disconnect();
     }
 
@@ -348,11 +349,15 @@ export class Group extends TypedEmitter<Events> {
       this.emit('server-add', managedServer);
 
       this.manageServerConnection(server);
+
+      return managedServer;
     } catch (error) {
       this.client.logger.error(
         `Couldn't get add server ${serverId} to group ${this.id} (${this.name}): ${(error as Error).message}`
       );
     }
+
+    return;
   }
 
   /**
@@ -381,6 +386,23 @@ export class Group extends TypedEmitter<Events> {
 
     server.dispose();
     delete this.servers[serverId];
+  }
+
+  /**
+   * Attempts to ensure a server is managed before doing anything with it.
+   */
+  private async ensureServer(serverId: number) {
+    let server = this.servers[serverId];
+
+    if (typeof server === 'undefined') {
+      this.client.logger.error(
+        `Server ${serverId} not found in group ${this.id} (${this.name}). Attempting to re-add server to group.`
+      );
+
+      server = await this.addServer(serverId);
+    }
+
+    return server;
   }
 
   /**
