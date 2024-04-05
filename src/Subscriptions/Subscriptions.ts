@@ -122,17 +122,21 @@ export class Subscriptions {
 
           const message = JSON.parse(data.toString());
 
-          /* Handle messages during migration. */
-          if (migrationId === that.migrationId && typeof that.resolveHalted !== 'undefined') {
-            that.events.emit('migrate', message);
-            return;
-          }
-
           if (typeof message.content === 'undefined') {
             that.client.logger.error(
               `Received a message with ID ${that.instanceId}-${message.id} but no content.`,
               JSON.stringify(message)
             );
+            return;
+          }
+
+          /* Handle messages during migration. */
+          if (
+            migrationId === that.migrationId &&
+            typeof that.resolveHalted !== 'undefined' &&
+            message.key === 'POST /ws/migrate'
+          ) {
+            that.events.emit('migrate', message);
             return;
           }
 
