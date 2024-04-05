@@ -30,7 +30,7 @@ export class SubscriptionsManager {
     const subscription = `${event}/${key}`;
 
     if (this.subscriptionsMap.has(subscription)) {
-      this.client.logger.error(`Already subscribed to ${subscription}.`);
+      this.client.logger.error(`[SUBSCRIPTIONS-MANAGER] Already subscribed to ${subscription}.`);
       return;
     }
 
@@ -50,7 +50,7 @@ export class SubscriptionsManager {
     const instanceId = this.subscriptionsMap.get(subscription);
 
     if (typeof instanceId === 'undefined') {
-      this.client.logger.error(`Subscription to ${subscription} does not exist.`);
+      this.client.logger.error(`[SUBSCRIPTIONS-MANAGER] Subscription to ${subscription} does not exist.`);
       return;
     }
 
@@ -58,7 +58,7 @@ export class SubscriptionsManager {
 
     if (typeof subscriptions === 'undefined') {
       this.client.logger.error(
-        `Couldn't retrieve managed subscriptions instance matching subscription to ${subscription}.`
+        `[SUBSCRIPTIONS-MANAGER] Couldn't retrieve managed subscriptions instance matching subscription to ${subscription}.`
       );
       return;
     }
@@ -68,7 +68,7 @@ export class SubscriptionsManager {
     this.subscriptionsMap.delete(subscription);
 
     if (subscriptions.getSize() === 0) {
-      this.client.logger.debug(`Subscriptions instance ${instanceId} is empty. Cleaning up.`);
+      this.client.logger.debug(`[SUBSCRIPTIONS-MANAGER] Subscriptions instance ${instanceId} is empty. Cleaning up.`);
       this.instances.delete(instanceId);
     }
 
@@ -93,7 +93,7 @@ export class SubscriptionsManager {
       if (subscriptions.getSize() < maxSubscriptions) return [instanceId, subscriptions] as const;
     }
 
-    this.client.logger.debug('Increasing the Subscriptions instance pool.');
+    this.client.logger.debug(`[SUBSCRIPTIONS-MANAGER] Increasing the Subscriptions instance pool.`);
 
     const instanceId = this.getInstanceId();
     const subscriptions = new Subscriptions(this.client, instanceId);
@@ -101,7 +101,7 @@ export class SubscriptionsManager {
 
     await subscriptions.init();
 
-    this.client.logger.debug(`Created new Subscriptions instance with ID ${instanceId}.`);
+    this.client.logger.debug(`[SUBSCRIPTIONS-MANAGER] Created new Subscriptions instance with ID ${instanceId}.`);
 
     return [instanceId, subscriptions] as const;
   }

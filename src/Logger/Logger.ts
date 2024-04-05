@@ -38,12 +38,12 @@ export class Logger {
     const separator = prefix.length === 0 ? '' : ' ';
 
     this.error = (...args: Parameters<typeof this.logError>) =>
-      this.logError(`${prefix}${separator}${args.shift()}`, ...args);
+      this.logError(`${prefix}${separator}error ${args.shift()}`, ...args);
     this.warn = (...args: Parameters<typeof this.logWarn>) =>
-      this.logWarn(`${prefix}${separator}${args.shift()}`, ...args);
+      this.logWarn(`${prefix}${separator}warn ${args.shift()}`, ...args);
     this.info = (...args: Parameters<typeof this.logInfo>) =>
-      this.logInfo(`${prefix}${separator}${args.shift()}`, ...args);
+      this.logInfo(`${prefix}${separator}info ${args.shift()}`, ...args);
     this.debug = (...args: Parameters<typeof this.logDebug>) =>
-      this.logDebug(`${prefix}${separator}${args.shift()}`, ...args);
+      this.logDebug(`${prefix}${separator}debug ${args.shift()}`, ...args);
   }
 }

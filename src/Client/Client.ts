@@ -169,12 +169,12 @@ export class Client extends TypedEmitter<Events> {
    */
   async start() {
     if (this.readyState !== ReadyState.Stopped) {
-      this.logger.error('This client is already initialised.');
+      this.logger.error(`[CLIENT] Already initialised.`);
       return;
     }
 
     this.readyState = ReadyState.Starting;
-    this.logger.info('Initialising client.');
+    this.logger.info(`[CLIENT] Initialising.`);
 
     /* Configure access token and decoded token. */
     const decodedToken = await this.refreshTokens();
@@ -184,8 +184,8 @@ export class Client extends TypedEmitter<Events> {
       const userId = decodedToken.client_sub;
 
       try {
-        /* Subscribe to account messages. */
-        this.logger.debug('Subscribing to account messages.');
+        /* Subscribe to client messages. */
+        this.logger.debug(`[CLIENT] Subscribing to client messages.`);
 
         await Promise.allSettled([
           /* Subscribe to and handle server group invitation message. */
@@ -197,10 +197,10 @@ export class Client extends TypedEmitter<Events> {
                 throw new Error('me-group-invite-create subscription message did not contain group information.');
               }
 
-              this.logger.info(`Accepting invite to group ${id} (${name})`);
+              this.logger.info(`[CLIENT] Accepting invite to group ${id} (${name})`);
               this.api.acceptGroupInvite(id);
             } catch (error) {
-              this.logger.error(`Error while handling group invite: ${(error as Error).message}`);
+              this.logger.error(`[CLIENT] Error while handling group invite: ${(error as Error).message}`);
             }
           }),
 
@@ -213,12 +213,12 @@ export class Client extends TypedEmitter<Events> {
                 throw new Error('me-group-create subscription message did not contain group or member information.');
               }
 
-              this.logger.info(`Client was added to group ${group.id} (${group.name}).`);
+              this.logger.info(`[CLIENT] Added to group ${group.id} (${group.name}).`);
 
               /* Create a new managed group. */
               this.addGroup(group, member);
             } catch (error) {
-              this.logger.error(`Error while joining group: ${(error as Error).message}`);
+              this.logger.error(`[CLIENT] Error while joining group: ${(error as Error).message}`);
             }
           }),
 
@@ -231,10 +231,10 @@ export class Client extends TypedEmitter<Events> {
                 throw new Error('me-group-delete subscription message did not contain group information.');
               }
 
-              this.logger.info(`Client was removed from group ${group.id} (${group.name}).`);
+              this.logger.info(`[CLIENT] Removed from group ${group.id} (${group.name}).`);
               this.removeGroup(group.id);
             } catch (error) {
-              this.logger.error(`Error while leaving group: ${(error as Error).message}`);
+              this.logger.error(`[CLIENT] Error while leaving group: ${(error as Error).message}`);
             }
           })
         ]);
@@ -243,7 +243,7 @@ export class Client extends TypedEmitter<Events> {
         const joinedGroups = await this.api.getJoinedGroups();
 
         if (joinedGroups.length > 0) {
-          this.logger.info(`Managing ${joinedGroups.length} group${joinedGroups.length > 1 ? 's' : ''}.`);
+          this.logger.info(`[CLIENT] Managing ${joinedGroups.length} group${joinedGroups.length > 1 ? 's' : ''}.`);
 
           const tasks = joinedGroups.map(
             ({ group, member }) =>
@@ -259,7 +259,9 @@ export class Client extends TypedEmitter<Events> {
         const invites = await this.api.getPendingGroupInvites();
 
         if (invites.length > 0) {
-          this.logger.info(`Accepting ${invites.length} pending group invite${invites.length > 1 ? 's' : ''}.`);
+          this.logger.info(
+            `[CLIENT] Accepting ${invites.length} pending group invite${invites.length > 1 ? 's' : ''}.`
+          );
 
           const tasks = invites.map(invite => () => this.api.acceptGroupInvite(invite.id));
 
@@ -272,13 +274,13 @@ export class Client extends TypedEmitter<Events> {
       }
     } else {
       this.logger.warn(
-        `You have configured this client with user credentials, so it will operate with most bot automation features disabled. To enable, please provide bot credentials instead.`
+        `[CLIENT] You have configured this client with user credentials, so it will operate with most bot automation features disabled. To enable, please provide bot credentials instead.`
       );
     }
 
     this.readyState = ReadyState.Ready;
     this.emit('ready');
-    this.logger.info('Client initialised.');
+    this.logger.info(`[CLIENT] Initialised.`);
   }
 
   /**
@@ -306,7 +308,7 @@ export class Client extends TypedEmitter<Events> {
    * The access token is a JWT that can be decoded to retrieve information about your client.
    */
   private async getAccessToken(): Promise<string> {
-    this.logger.info('Retrieving access token.');
+    this.logger.info(`[CLIENT] Retrieving access token.`);
 
     const body =
       'clientId' in this.config
@@ -322,7 +324,7 @@ export class Client extends TypedEmitter<Events> {
           });
 
     const bodyString = body.toString();
-    this.logger.debug('Created access token request payload.', bodyString);
+    this.logger.debug(`[CLIENT] Created access token request payload.`, bodyString);
 
     const headers = new Headers({
       'Content-Length': bodyString.length.toString(),
@@ -336,13 +338,13 @@ export class Client extends TypedEmitter<Events> {
       headers.append('x-api-key', this.config.xApiKey);
     }
 
-    this.logger.debug('Configured access token request headers.', headers);
+    this.logger.debug('[CLIENT] Configured access token request headers.', headers);
 
     const endpoint =
       'clientId' in this.config ? this.config.tokenUrl : `${this.config.restBaseUrl}${Endpoint.Sessions}`;
 
     try {
-      this.logger.debug('Sending access token request.');
+      this.logger.debug(`[CLIENT] Sending access token request.`);
       const response = await fetch(endpoint, {
         method: 'POST',
         headers,
@@ -350,7 +352,7 @@ export class Client extends TypedEmitter<Events> {
       });
 
       const data = await response.json();
-      this.logger.debug('Retrieving access token data.', JSON.stringify(data));
+      this.logger.debug(`[CLIENT] Retrieving access token data.`, JSON.stringify(data));
 
       if (!response.ok) {
         const error = (data && data.message) || response.status;
@@ -358,12 +360,11 @@ export class Client extends TypedEmitter<Events> {
       }
 
       const { access_token: accessToken } = data;
-      this.logger.debug('Found access token.');
 
       return accessToken as string;
     } catch (error) {
       this.logger.error(
-        'There was an error when retrieving the access token. Retrying in 10 seconds.',
+        `[CLIENT] There was an error when retrieving the access token. Retrying in 10 seconds.`,
         (error as Error).message
       );
 
@@ -377,11 +378,11 @@ export class Client extends TypedEmitter<Events> {
    * Takes an access token and decodes it to get its JWT payload.
    */
   private async decodeToken(accessToken: string): Promise<DecodedToken> {
-    this.logger.info('Decoding access token.');
+    this.logger.info(`[CLIENT] Decoding access token.`);
 
     try {
       const decodedToken = jwtDecode.default<DecodedToken>(accessToken);
-      this.logger.debug('Decoded access token.', JSON.stringify(decodedToken));
+      this.logger.debug(`[CLIENT] Decoded access token.`, JSON.stringify(decodedToken));
 
       return decodedToken;
     } catch (error) {
@@ -412,16 +413,16 @@ export class Client extends TypedEmitter<Events> {
    * Starts managing a group and its servers.
    */
   private async addGroup(group: GroupInfo, member: GroupMemberInfo) {
-    this.logger.debug(`Adding group ${group.id} (${group.name}).`);
+    this.logger.debug(`[CLIENT] Managing group ${group.id} (${group.name}).`);
 
     if (Object.keys(this.groups).map(Number).includes(group.id)) {
-      this.logger.error(`Can't add group ${group.id} (${group.name}) more than once.`);
+      this.logger.error(`[CLIENT] Can't manage group ${group.id} (${group.name}) more than once.`);
       return;
     }
 
     if (!this.isAllowedGroup(group.id)) {
       this.logger.warn(
-        `Client is a member of group ${group.id} (${group.name}) which is either not configured as an included group, or is configured as an excluded group.`
+        `[CLIENT] Client is a member of group ${group.id} (${group.name}) which is either not configured as an included group, or is configured as an excluded group.`
       );
       return;
     }
@@ -440,12 +441,12 @@ export class Client extends TypedEmitter<Events> {
    * Stops managing a group and its servers.
    */
   private async removeGroup(groupId: number) {
-    this.logger.debug(`Removing group ${groupId}.`);
+    this.logger.debug(`[CLIENT] Removing group ${groupId}.`);
 
     const group = this.groups[groupId];
 
     if (typeof group === 'undefined') {
-      this.logger.error(`Can't remove an unmanaged group with ID ${groupId}.`);
+      this.logger.error(`[CLIENT] Can't remove an unmanaged group with ID ${groupId}.`);
       return;
     }
 
@@ -462,7 +463,7 @@ export class Client extends TypedEmitter<Events> {
     } else {
       const hashedPassword = createHash('sha512').update(password).digest('hex');
       this.logger.warn(
-        `You are using an unhashed password to configure this client. For increased security, please consider replacing any mention of your password in any of your project files with this hash of your password instead: ${hashedPassword}`
+        `[CLIENT] You are using an unhashed password to configure this client. For increased security, please consider replacing any mention of your password in any of your project files with this hash of your password instead: ${hashedPassword}`
       );
 
       return hashedPassword;
@@ -492,7 +493,7 @@ export class Client extends TypedEmitter<Events> {
 
     if ('clientId' in this.config) {
       this.logger.warn(
-        "You are manually opening a server connection, but client is in bot automation mode. You should probably handle your server connection via client.on('connect') instead."
+        `[CLIENT] You are manually opening a server connection, but client is in bot automation mode. You should probably handle your server connection via client.on('connect') instead.`
       );
     }
 

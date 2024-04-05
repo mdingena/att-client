@@ -31,32 +31,23 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
     const that = this;
 
     function handleError(this: WebSocket, error: Error) {
-      that.server.group.client.logger.error(
-        `An error occurred on console ${that.server.id} (${that.server.name}).`,
-        error.message
-      );
+      that.server.group.client.logger.error(`[CONSOLE-${that.server.id}] An error occurred.`, error.message);
 
       that.emit('error', error);
     }
 
     function handlePing(this: WebSocket, data: Buffer) {
-      that.server.group.client.logger.debug(
-        `Received console ${that.server.id} (${that.server.name}) ping.`,
-        data.toString()
-      );
+      that.server.group.client.logger.debug(`[CONSOLE-${that.server.id}] Received ping.`, data.toString());
       this.pong(data);
     }
 
     function handlePong(this: WebSocket, data: Buffer) {
-      that.server.group.client.logger.debug(
-        `Received console ${that.server.id} (${that.server.name}) pong.`,
-        data.toString()
-      );
+      that.server.group.client.logger.debug(`[CONSOLE-${that.server.id}] Received pong.`, data.toString());
     }
 
     function handleClose(this: WebSocket, code: number, reason: Buffer) {
       that.server.group.client.logger.debug(
-        `Console ${that.server.id} (${that.server.name}) is closing with code ${code}: ${reason.toString()}.`
+        `[CONSOLE-${that.server.id}] Closing with code ${code}: ${reason.toString()}.`
       );
 
       this.removeAllListeners();
@@ -67,11 +58,8 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
     function handleMessage(this: WebSocket, data: Buffer, isBinary: boolean) {
       if (isBinary) {
         // This should never happen. There is no Alta documentation about binary data being sent through WebSockets.
-        that.server.group.client.logger.error('Puking horses! 🐴🐴🤮'); // https://thepetwiki.com/wiki/do_horses_vomit/
-        that.server.group.client.logger.debug(
-          `Received binary data on console ${that.server.id} (${that.server.name}):`,
-          data.toString()
-        );
+        that.server.group.client.logger.error(`[CONSOLE-${that.server.id}] Puking horses! 🐴🐴🤮`); // https://thepetwiki.com/wiki/do_horses_vomit/
+        that.server.group.client.logger.debug(`[CONSOLE-${that.server.id}] Received binary data:`, data.toString());
         return;
       }
 
@@ -83,7 +71,7 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
           : `command-${message.commandId}`;
 
       that.server.group.client.logger.debug(
-        `Console ${that.server.id} (${that.server.name}) received ${eventName} message.`,
+        `[CONSOLE-${that.server.id}] Received ${eventName} message.`,
         JSON.stringify(message)
       );
 
@@ -101,11 +89,8 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
     }
 
     function handleOpen(this: WebSocket) {
-      that.server.group.client.logger.debug(`Console ${that.server.id} (${that.server.name}) opened.`);
+      that.server.group.client.logger.debug(`[CONSOLE-${that.server.id}] Opened.`);
 
-      that.server.group.client.logger.debug(
-        `Registering console ${that.server.id} (${that.server.name}) event handlers.`
-      );
       this.on('ping', handlePing);
       this.on('pong', handlePong);
       this.on('message', handleMessage);
@@ -113,15 +98,13 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
       this.send(token, error => {
         if (error) {
           that.server.group.client.logger.error(
-            `Couldn't authenticate console ${that.server.id} (${that.server.name}) connection.`,
+            `[CONSOLE-${that.server.id}] Couldn't authenticate console connection.`,
             error.message
           );
           return;
         }
 
-        that.server.group.client.logger.debug(
-          `Authenticated console connection on server ${that.server.id} (${that.server.name}).`
-        );
+        that.server.group.client.logger.debug(`[CONSOLE-${that.server.id}] Authenticated console connection.`);
       });
     }
 
@@ -171,10 +154,7 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
 
         const message = JSON.stringify({ id, content: command });
 
-        this.server.group.client.logger.debug(
-          `Sending command-${id} to ${this.server.id} (${this.server.name}).`,
-          message
-        );
+        this.server.group.client.logger.debug(`[CONSOLE-${this.server.id}] Sending command-${id}.`, message);
         this.ws.send(message, error => error && reject(error));
       }
     );
@@ -192,10 +172,10 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
    */
   subscribe<T extends SubscriptionEvent>(event: T, callback: (message: SubscriptionEventMessage<T>) => void) {
     if (this.subscribedEvents.includes(event)) {
-      throw new Error(`Already subscribed to ${event} on server ${this.server.id} (${this.server.name}).`);
+      throw new Error(`[CONSOLE-${this.server.id}] Already subscribed to ${event}.`);
     }
 
-    this.server.group.client.logger.info(`Subscribing to ${event} on server ${this.server.id} (${this.server.name}).`);
+    this.server.group.client.logger.info(`[CONSOLE-${this.server.id}] Subscribing to ${event}.`);
     this.subscribedEvents = [...this.subscribedEvents, event];
     this.events.on(`Subscription/${event}`, callback);
 
@@ -213,12 +193,10 @@ export class ServerConnection extends TypedEmitter<ServerConnectionEvents> {
    */
   unsubscribe<T extends SubscriptionEvent>(event: T) {
     if (!this.subscribedEvents.includes(event)) {
-      throw new Error(`Subscription to ${event} does not exist on server ${this.server.id} (${this.server.name}).`);
+      throw new Error(`[CONSOLE-${this.server.id}] Subscription to ${event} does not exist.`);
     }
 
-    this.server.group.client.logger.info(
-      `Unsubscribing to ${event} on server ${this.server.id} (${this.server.name}).`
-    );
+    this.server.group.client.logger.info(`[CONSOLE-${this.server.id}] Unsubscribing to ${event}.`);
     this.subscribedEvents = this.subscribedEvents.filter(existing => existing !== event);
     this.events.removeAllListeners(`Subscription/${event}`);
 

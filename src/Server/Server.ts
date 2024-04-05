@@ -47,18 +47,18 @@ export class Server extends TypedEmitter<Events> {
     this.status = 'connecting';
 
     if (typeof this.connection !== 'undefined') {
-      throw new Error(`Can't open a second connection to server ${this.id}'s (${this.name}) console.`);
+      throw new Error(`[SERVER-${this.id}] Can't open a second console connection.`);
     }
 
     const serverConnectionInfo = await this.group.client.api.getServerConnectionDetails(this.id);
 
     if ('ok' in serverConnectionInfo) {
-      throw new Error(`Couldn't get connection details for server ${this.id} (${this.name}).`);
+      throw new Error(`[SERVER-${this.id}] Couldn't get connection details.`);
     }
 
     return await new Promise<ServerConnection>((resolve, reject) => {
       this.group.client.logger.debug(
-        `Got connection details for server ${this.id} (${this.name}).`,
+        `[SERVER-${this.id}] Got connection details.`,
         JSON.stringify(serverConnectionInfo)
       );
 
@@ -66,20 +66,18 @@ export class Server extends TypedEmitter<Events> {
 
       if (typeof connectionDetails === 'undefined') {
         return reject(
-          new Error(
-            `Console WebSocket details are missing for server ${this.id} (${this.name}). ${serverConnectionInfo.message}`
-          )
+          new Error(`[SERVER-${this.id}] Console WebSocket details are missing. ${serverConnectionInfo.message}`)
         );
       }
 
       if (typeof token === 'undefined') {
-        return reject(new Error(`Console WebSocket token is missing for server ${this.id} (${this.name}).`));
+        return reject(new Error(`[SERVER-${this.id}] Console WebSocket token is missing.`));
       }
 
       if (!allowed) {
         return reject(
           new Error(
-            `This client is not allowed to use server ${this.id}'s (${this.name}) console. Check that the bot account for this client was granted "Console" permissions.`
+            `[SERVER-${this.id}] Client is not allowed to use this server's console. Check that the bot account for this client was granted "Console" permissions.`
           )
         );
       }
@@ -89,10 +87,7 @@ export class Server extends TypedEmitter<Events> {
       const that = this;
 
       function handleError(this: ServerConnection, error: Error) {
-        that.group.client.logger.error(
-          `Error on console connection on server ${that.id} (${that.name}).`,
-          error.message
-        );
+        that.group.client.logger.error(`[SERVER-${that.id}] Error on console connection.`, error.message);
 
         /**
          * If errors happen before the WebSocket connection is opened, it's likely
@@ -109,7 +104,7 @@ export class Server extends TypedEmitter<Events> {
       }
 
       function handleOpen(this: ServerConnection) {
-        that.group.client.logger.info(`Console connection opened on server ${that.id} (${that.name}).`);
+        that.group.client.logger.info(`[SERVER-${that.id}] Console connection opened.`);
         that.status = 'connected';
         that.emit('connect', this);
         that.group.client.emit('connect', this);
@@ -121,11 +116,7 @@ export class Server extends TypedEmitter<Events> {
           that.disconnect();
         } else {
           /* Reconnect console connection when closed unexpectedly. */
-          that.group.client.logger.info(
-            `Console connection closed on server ${that.id} (${that.name}).`,
-            code,
-            reason?.toString()
-          );
+          that.group.client.logger.info(`[SERVER-${that.id}] Console connection closed.`, code, reason?.toString());
 
           await that.reconnect();
         }
@@ -147,7 +138,7 @@ export class Server extends TypedEmitter<Events> {
   disconnect() {
     if (typeof this.connection === 'undefined') return;
 
-    this.group.client.logger.info(`Closing console connection to server ${this.id} (${this.name}).`);
+    this.group.client.logger.info(`[SERVER-${this.id}] Closing console connection.`);
     this.connection.dispose();
     delete this.connection;
     this.status = 'disconnected';
@@ -162,7 +153,7 @@ export class Server extends TypedEmitter<Events> {
     this.disconnect();
 
     this.group.client.logger.info(
-      `Reopening console connection to server ${this.id} (${this.name}) in ${this.group.client.config.serverConnectionRecoveryDelay} ms.`
+      `[SERVER-${this.id}] Reopening console connection in ${this.group.client.config.serverConnectionRecoveryDelay} ms.`
     );
 
     await new Promise(resolve => setTimeout(resolve, this.group.client.config.serverConnectionRecoveryDelay));
