@@ -23,7 +23,7 @@ export class Api {
   async auth() {
     if (typeof this.client.accessToken === 'undefined') {
       this.client.logger.error(
-        "Can't authorise API requests without an access token. Ordering client to refresh tokens."
+        `[API] Can't authorise API requests without an access token. Ordering client to refresh tokens.`
       );
       await this.client.refreshTokens();
       return;
@@ -143,7 +143,7 @@ export class Api {
     payload?: ApiRequest
   ): Promise<ApiResponse<TMethod, TEndpoint>> {
     if (typeof this.headers === 'undefined') {
-      this.client.logger.error('API is not authorised. Ordering authorisation now.');
+      this.client.logger.error(`[API] Not authorised. Ordering authorisation now.`);
       await this.auth();
       return await this.request<TMethod, TEndpoint>(method, endpoint, params, query, payload);
     }
