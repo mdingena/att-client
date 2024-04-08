@@ -44,15 +44,17 @@ export class Server extends TypedEmitter<Events> {
    * Retrieves a server's connection details and establish a console connection.
    */
   async connect(): Promise<ServerConnection> {
-    this.status = 'connecting';
-
     if (typeof this.connection !== 'undefined') {
       throw new Error(`[SERVER-${this.id}] Can't open a second console connection.`);
     }
 
+    this.status = 'connecting';
+
     const serverConnectionInfo = await this.group.client.api.getServerConnectionDetails(this.id);
 
     if ('ok' in serverConnectionInfo) {
+      this.status = 'disconnected';
+
       throw new Error(`[SERVER-${this.id}] Couldn't get connection details.`);
     }
 
@@ -65,16 +67,22 @@ export class Server extends TypedEmitter<Events> {
       const { allowed, connection: connectionDetails, token } = serverConnectionInfo;
 
       if (typeof connectionDetails === 'undefined') {
+        this.status = 'disconnected';
+
         return reject(
           new Error(`[SERVER-${this.id}] Console WebSocket details are missing. ${serverConnectionInfo.message}`)
         );
       }
 
       if (typeof token === 'undefined') {
+        this.status = 'disconnected';
+
         return reject(new Error(`[SERVER-${this.id}] Console WebSocket token is missing.`));
       }
 
       if (!allowed) {
+        this.status = 'disconnected';
+
         return reject(
           new Error(
             `[SERVER-${this.id}] Client is not allowed to use this server's console. Check that the bot account for this client was granted "Console" permissions.`
