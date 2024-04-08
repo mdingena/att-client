@@ -353,7 +353,7 @@ export class Group extends TypedEmitter<Events> {
    * Starts managing the given server.
    */
   private async addServer(serverId: number) {
-    this.client.logger.debug(`[GROUP-${this.id}] Adding server ${serverId} (${this.name}).`);
+    this.client.logger.info(`[GROUP-${this.id}] Managing server ${serverId} (${this.name}).`);
     try {
       if (Object.keys(this.servers).map(Number).includes(serverId)) {
         throw new Error(`[GROUP-${this.id}] Can't add server ${serverId} (${this.name}) more than once.`);
@@ -396,7 +396,7 @@ export class Group extends TypedEmitter<Events> {
    * Removes the given managed server from this group.
    */
   private removeServer(serverId: number) {
-    this.client.logger.debug(`[GROUP-${this.id}] Removing server ${serverId} (${this.name}).`);
+    this.client.logger.info(`[GROUP-${this.id}] Removing server ${serverId} (${this.name}).`);
 
     const server = this.servers[serverId];
 

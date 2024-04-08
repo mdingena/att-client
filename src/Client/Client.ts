@@ -413,7 +413,7 @@ export class Client extends TypedEmitter<Events> {
    * Starts managing a group and its servers.
    */
   private async addGroup(group: GroupInfo, member: GroupMemberInfo) {
-    this.logger.debug(`[CLIENT] Managing group ${group.id} (${group.name}).`);
+    this.logger.info(`[CLIENT] Managing group ${group.id} (${group.name}).`);
 
     if (Object.keys(this.groups).map(Number).includes(group.id)) {
       this.logger.error(`[CLIENT] Can't manage group ${group.id} (${group.name}) more than once.`);
@@ -441,7 +441,7 @@ export class Client extends TypedEmitter<Events> {
    * Stops managing a group and its servers.
    */
   private async removeGroup(groupId: number) {
-    this.logger.debug(`[CLIENT] Removing group ${groupId}.`);
+    this.logger.info(`[CLIENT] Removing group ${groupId}.`);
 
     const group = this.groups[groupId];
 
