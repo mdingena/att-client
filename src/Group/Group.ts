@@ -66,14 +66,17 @@ export class Group extends TypedEmitter<Events> {
       this.client.subscriptions.subscribe('group-update', this.id.toString(), async message => {
         try {
           const group = message.content;
-          const member = await this.client.api.getGroupMember(this.id, this.userId.toString());
-
-          if (typeof member === 'undefined') {
-            this.client.logger.error(`[GROUP-${this.id}] Couldn't get group member info.`);
-            return;
-          }
-
-          this.updateGroup(group, member);
+          /**
+           * 2024-04-08 v0.5.2
+           * This callback used to request group membership details to handle cases where group roles
+           * and permissions have changed. This appears to be problematic for servers with very large
+           * number of members somehow. The exact cause was not determined, but sometimes this update
+           * would cause att-client to think it lost console access. Given that group roles and
+           * permissions can't be modified easily through the Tavern website anymore, we're going to
+           * skip permission checks entirely when we receive this message. We'll only check permissions
+           * when we receive a group-member-update message.
+           */
+          this.updateGroup(group);
         } catch (error) {
           this.client.logger.error(`[GROUP-${this.id}] Error while handling group update: ${(error as Error).message}`);
         }
@@ -222,14 +225,16 @@ export class Group extends TypedEmitter<Events> {
   /**
    * Updates the group's details.
    */
-  private async updateGroup(group: GroupInfo, member: GroupMemberInfo) {
+  private async updateGroup(group: GroupInfo, member?: GroupMemberInfo) {
     this.name = group.name ?? this.name;
     this.description = group.description ?? this.description;
     this.roles =
       group.roles?.map(role => ({ id: role.role_id, name: role.name ?? '', permissions: role.permissions })) ??
       this.roles;
 
-    await this.updatePermissions(group, member);
+    if (typeof member !== 'undefined') {
+      await this.updatePermissions(group, member);
+    }
 
     this.emit('update', this);
   }
