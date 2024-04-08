@@ -10,6 +10,12 @@ export const AGENT = {
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 
+const API_REQUEST_ATTEMPTS = 3;
+
+const API_REQUEST_RETRY_DELAY = 3 * SECOND;
+
+const API_REQUEST_TIMEOUT = 5 * SECOND;
+
 const MAX_MISSED_SERVER_HEARTBEATS = 3;
 
 const MAX_SUBSCRIPTIONS_PER_WEBSOCKET = 500;
@@ -49,6 +55,9 @@ const WEBSOCKET_URL = 'wss://websocket.townshiptale.com';
 const X_API_KEY = '2l6aQGoNes8EHb94qMhqQ5m2iaiOM9666oDTPORf';
 
 export const DEFAULTS: Required<Omit<Config, 'clientId' | 'clientSecret' | 'scope' | 'username' | 'password'>> = {
+  apiRequestAttempts: API_REQUEST_ATTEMPTS,
+  apiRequestRetryDelay: API_REQUEST_RETRY_DELAY,
+  apiRequestTimeout: API_REQUEST_TIMEOUT,
   console: console,
   excludedGroups: [],
   includedGroups: [],

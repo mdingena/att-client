@@ -17,6 +17,9 @@ export type Scope =
   | 'ws.group_servers';
 
 interface CommonConfig {
+  apiRequestAttempts?: number;
+  apiRequestRetryDelay?: number;
+  apiRequestTimeout?: number;
   console?: Pick<Console, 'error' | 'warn' | 'info' | 'debug'>;
   excludedGroups?: number[];
   includedGroups?: number[];

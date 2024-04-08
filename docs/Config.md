@@ -1,5 +1,8 @@
 # `Config`
 
+- [`Config.apiRequestAttempts`](#configapirequestattempts)
+- [`Config.apiRequestRetryDelay`](#configapirequestretrydelay)
+- [`Config.apiRequestTimeout`](#configapirequesttimeout)
 - [`Config.clientId`](#configclientid)
 - [`Config.clientSecret`](#configclientsecret)
 - [`Config.console`](#configconsole)
@@ -33,6 +36,9 @@ The `Config` object is used to configure a [`Client`](./Client.md).
 
 ```ts
 interface CommonConfig {
+  apiRequestAttempts?: number;
+  apiRequestRetryDelay?: number;
+  apiRequestTimeout?: number;
   console?: Pick<Console, 'error' | 'warn' | 'info' | 'debug'>;
   excludedGroups?: number[];
   includedGroups?: number[];
@@ -71,6 +77,27 @@ interface UserConfig extends CommonConfig {
 
 type Config = BotConfig | UserConfig;
 ```
+
+## `Config.apiRequestAttempts`
+
+- `<number>` Amount of request attempts.
+- Defaults to 3 attempts.
+
+This option configures the number of times [`Client`](./Client.md) will attempt to send an API request.
+
+## `Config.apiRequestRetryDelay`
+
+- `<number>` Time in milliseconds.
+- Defaults to 3 seconds.
+
+This option configures the delay before a failed API request is retried.
+
+## `Config.apiRequestTimeout`
+
+- `<number>` Time in milliseconds.
+- Defaults to 5 seconds.
+
+This option configures how API requests are allowed to take.
 
 ## `Config.clientId`
 

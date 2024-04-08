@@ -125,6 +125,9 @@ export class Client extends TypedEmitter<Events> {
 
     this.config = {
       ...credentials,
+      apiRequestAttempts: config.apiRequestAttempts ?? DEFAULTS.apiRequestAttempts,
+      apiRequestRetryDelay: config.apiRequestRetryDelay ?? DEFAULTS.apiRequestRetryDelay,
+      apiRequestTimeout: config.apiRequestTimeout ?? DEFAULTS.apiRequestTimeout,
       console: configuredConsole,
       excludedGroups:
         config.excludedGroups && (typeof config.includedGroups === 'undefined' || config.includedGroups.length === 0)

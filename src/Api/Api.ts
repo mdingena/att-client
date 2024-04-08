@@ -140,7 +140,8 @@ export class Api {
     endpoint: TEndpoint,
     params?: Partial<Parameters>,
     query?: Parameters,
-    payload?: ApiRequest
+    payload?: ApiRequest,
+    attemptsLeft = this.client.config.apiRequestAttempts
   ): Promise<ApiResponse<TMethod, TEndpoint>> {
     if (typeof this.headers === 'undefined') {
       this.client.logger.error(`[API] Not authorised. Ordering authorisation now.`);
@@ -150,18 +151,43 @@ export class Api {
 
     const url = this.createUrl(endpoint, params, query);
 
-    this.client.logger.debug(`Requesting ${method} ${url}`, JSON.stringify(payload));
+    this.client.logger.debug(`[API] ${method} ${url}`, JSON.stringify(payload));
 
-    const response: ApiResponse<TMethod, TEndpoint> = await fetch(url.toString(), {
-      method,
-      headers: this.headers,
-      body: typeof payload === 'undefined' ? null : JSON.stringify(payload)
-    });
+    let response: ApiResponse<TMethod, TEndpoint>;
 
-    if (!response.ok) {
-      this.client.logger.error(`${method} ${response.url} responded with ${response.status} ${response.statusText}.`);
-      const body = await response.json();
-      throw new Error('message' in body ? body.message : JSON.stringify(body));
+    try {
+      response = await Promise.race<[Promise<ApiResponse<TMethod, TEndpoint>>, Promise<never>]>([
+        fetch(url.toString(), {
+          method,
+          headers: this.headers,
+          body: typeof payload === 'undefined' ? null : JSON.stringify(payload)
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => {
+            reject(new Error(`${method} ${url} request timed out.`));
+          }, this.client.config.apiRequestTimeout)
+        )
+      ]);
+
+      if (!response.ok) {
+        this.client.logger.error(
+          `[API] ${method} ${response.url} responded with ${response.status} ${response.statusText}.`
+        );
+        const body = await response.json();
+        throw new Error('message' in body ? body.message : JSON.stringify(body));
+      }
+    } catch (error) {
+      this.client.logger.error(`[API] ${method} ${url} error: ${(error as Error).message}`);
+
+      if (attemptsLeft > 0) {
+        this.client.logger.debug(`[API] ${method} ${url} retrying in ${this.client.config.apiRequestRetryDelay} ms.`);
+
+        await new Promise(resolve => setTimeout(resolve, this.client.config.apiRequestRetryDelay));
+
+        return await this.request(method, endpoint, params, query, payload, attemptsLeft - 1);
+      } else {
+        throw new Error(`[API] ${method} ${url} exhausted request attempts.`);
+      }
     }
 
     return response;
