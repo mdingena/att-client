@@ -411,7 +411,7 @@ export class Subscriptions {
         this.subscribe(subscription, key, callback) ??
         Promise.reject(
           new Error(
-            `[SUBSCRIPTIONS-${this.instanceId}] WebSocket recovery failed! Resubscribing to ${entry} was unsuccessful. Retrying recovery in ${this.client.config.webSocketRecoveryRetryDelay} ms.`
+            `WebSocket recovery failed! Resubscribing to ${entry} was unsuccessful. Retrying recovery in ${this.client.config.webSocketRecoveryRetryDelay} ms.`
           )
         )
       );
@@ -424,7 +424,7 @@ export class Subscriptions {
           setTimeout(() => {
             reject(
               new Error(
-                `[SUBSCRIPTIONS-${this.instanceId}] WebSocket recovery failed! Resubscribing was unsuccessful within ${this.client.config.webSocketRecoveryTimeout} ms. Retrying recovery in ${this.client.config.webSocketRecoveryRetryDelay} ms.`
+                `WebSocket recovery failed! Resubscribing was unsuccessful within ${this.client.config.webSocketRecoveryTimeout} ms. Retrying recovery in ${this.client.config.webSocketRecoveryRetryDelay} ms.`
               )
             );
           }, this.client.config.webSocketRecoveryTimeout)
@@ -436,7 +436,7 @@ export class Subscriptions {
         this.resolveHalted = resolve;
       });
 
-      this.client.logger.error((error as Error).message);
+      this.client.logger.error(`[SUBSCRIPTIONS-${this.instanceId}] ${(error as Error).message}`);
 
       await new Promise(resolve => setTimeout(resolve, this.client.config.webSocketRecoveryRetryDelay));
 
