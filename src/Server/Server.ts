@@ -112,7 +112,7 @@ export class Server extends TypedEmitter<Events> {
       }
 
       function handleOpen(this: ServerConnection) {
-        that.group.client.logger.info(`[SERVER-${that.id}] Console connection opened.`);
+        that.group.client.logger.info(`[SERVER-${that.id}] Console connection opened. (${that.name})`);
         that.status = 'connected';
         that.emit('connect', this);
         that.group.client.emit('connect', this);
@@ -124,7 +124,11 @@ export class Server extends TypedEmitter<Events> {
           that.disconnect();
         } else {
           /* Reconnect console connection when closed unexpectedly. */
-          that.group.client.logger.info(`[SERVER-${that.id}] Console connection closed.`, code, reason?.toString());
+          that.group.client.logger.info(
+            `[SERVER-${that.id}] Console connection closed. (${that.name})`,
+            code,
+            reason?.toString()
+          );
 
           await that.reconnect();
         }
