@@ -125,6 +125,9 @@ new WebSocket(client.config.webSocketUrl);
 
 ## `client.denyGroup(groupId: number)`
 
+- `groupId` `<number>` the ID of the server group you want to denylist
+- Returns: <code>Promise&lt;void&gt;</code>
+
 Dynamically adds a group ID to the `Client`'s `excludedGroups` configuration. Dynamic denylists are useful when you're running multiple instances of your `Client` with different `excludedGroups` configuration, for example when sharding a bot with Discord integration.
 
 ```ts
