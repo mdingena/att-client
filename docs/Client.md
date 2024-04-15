@@ -2,8 +2,10 @@
 
 - [`new Client(config)`](#new-clientconfig)
 - [`client.accessToken`](#clientaccesstoken)
+- [`client.allowGroup(groupId: number, force?: boolean)`](#clientallowgroupgroupid-number-force-boolean)
 - [`client.api`](#clientapi)
 - [`client.config`](#clientconfig)
+- [`client.denyGroup(groupId: number)`](#clientdenygroupgroupid-number)
 - [`client.groups`](#clientgroups)
 - [`client.logger`](#clientlogger)
 - [`client.openServerConnection(serverId: number)`](#clientopenserverconnectionserverid-number)
@@ -41,6 +43,25 @@ const headers = new Headers({
   Authorization: `Bearer ${client.accessToken}`
 });
 ```
+
+## `client.allowGroup(groupId: number, force?: boolean)`
+
+- `groupId` `<number>` the ID of the server group you want to allowlist
+- `force` (optional, default `false`) `<boolean>` forces the ID to be added to the allowlist even if that effectively removes the "allow all groups" behaviour of empty `includedGroups` configuration
+- Returns: <code>Promise&lt;void&gt;</code>
+
+Dynamically adds a group ID to the `Client`'s `includedGroups` configuration. Dynamic allowlists are useful when you're running multiple instances of your `Client` with different `includedGroups` configuration, for example when sharding a bot with Discord integration.
+
+```ts
+try {
+  await client.allowGroup(12345);
+} catch (error) {
+  // Your own error handling.
+  console.error(error);
+}
+```
+
+:warning: Adding a group to the allowlist also automatically removes it from the denylist. If `Client` did not have any `includedGroups` during initialisation, this method will only remove the group ID from the denylist. An empty `includedGroups` list is the same as "allow all groups" and this method does not change that behaviour unless you pass `true` for the `force` argument.
 
 ## `client.api`
 
@@ -101,6 +122,21 @@ Gets `Client`'s configuration. It is not recommended to change any configuration
 ```ts
 new WebSocket(client.config.webSocketUrl);
 ```
+
+## `client.denyGroup(groupId: number)`
+
+Dynamically adds a group ID to the `Client`'s `excludedGroups` configuration. Dynamic denylists are useful when you're running multiple instances of your `Client` with different `excludedGroups` configuration, for example when sharding a bot with Discord integration.
+
+```ts
+try {
+  await client.denyGroup(12345);
+} catch (error) {
+  // Your own error handling.
+  console.error(error);
+}
+```
+
+:warning: Adding a group to the denylist also automatically removes it from the allowlist.
 
 ## `client.groups`
 

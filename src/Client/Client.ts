@@ -35,6 +35,8 @@ export class Client extends TypedEmitter<Events> {
   subscriptions: SubscriptionsManager;
 
   private decodedToken?: DecodedToken;
+  private groupAllowlist: Set<number>;
+  private groupDenylist: Set<number>;
   private readyState: ReadyState;
   private refreshTokensDelay?: NodeJS.Timeout;
 
@@ -159,6 +161,8 @@ export class Client extends TypedEmitter<Events> {
 
     /* Initialise internals. */
     this.api = new Api(this);
+    this.groupAllowlist = new Set(this.config.includedGroups);
+    this.groupDenylist = new Set(this.config.excludedGroups);
     this.groups = {};
     this.name = `${AGENT.name} v${AGENT.version}`;
     this.readyState = ReadyState.Stopped;
@@ -405,9 +409,9 @@ export class Client extends TypedEmitter<Events> {
    * be managed by this client.
    */
   private isAllowedGroup(groupId: number) {
-    const mustBeIncluded = this.config.includedGroups.length > 0;
-    const isIncluded = this.config.includedGroups.includes(groupId);
-    const isExcluded = this.config.excludedGroups.includes(groupId);
+    const mustBeIncluded = this.groupAllowlist.size > 0;
+    const isIncluded = this.groupAllowlist.has(groupId);
+    const isExcluded = this.groupDenylist.has(groupId);
 
     return mustBeIncluded ? isIncluded : !isExcluded;
   }
@@ -416,17 +420,13 @@ export class Client extends TypedEmitter<Events> {
    * Starts managing a group and its servers.
    */
   private async addGroup(group: GroupInfo, member: GroupMemberInfo) {
-    this.logger.info(`[CLIENT] Managing group ${group.id} (${group.name}).`);
-
     if (Object.keys(this.groups).map(Number).includes(group.id)) {
       this.logger.error(`[CLIENT] Can't manage group ${group.id} (${group.name}) more than once.`);
       return;
     }
 
     if (!this.isAllowedGroup(group.id)) {
-      this.logger.warn(
-        `[CLIENT] Client is a member of group ${group.id} (${group.name}) which is either not configured as an included group, or is configured as an excluded group.`
-      );
+      this.logger.debug(`[CLIENT] Refused to manage denylisted group ${group.id} (${group.name}).`);
       return;
     }
 
@@ -437,15 +437,46 @@ export class Client extends TypedEmitter<Events> {
       [group.id]: managedGroup
     } as Groups;
 
+    this.logger.info(`[CLIENT] Managing group ${group.id} (${group.name}).`);
+
     return await managedGroup.init();
+  }
+
+  /**
+   * Dynamically adds a group ID to the Client's allowlist.
+   *
+   * @example
+   * try {
+   *   await client.allowGroup(12345);
+   * } catch (error) {
+   *   // Your own error handling.
+   *   console.error(error);
+   * }
+   */
+  public async allowGroup(groupId: number, force = false) {
+    if (typeof this.decodedToken === 'undefined' || !('client_sub' in this.decodedToken)) {
+      throw new Error(
+        `[CLIENT] Cannot dynamically allowlist group while client is not initialised with bot credentials.`
+      );
+    }
+
+    const userId = this.decodedToken.client_sub;
+
+    const [group, member] = await Promise.all([
+      this.api.getGroupInfo(groupId),
+      this.api.getGroupMember(groupId, userId)
+    ]);
+
+    this.groupDenylist.delete(groupId);
+    if (this.groupAllowlist.size > 0 || force) this.groupAllowlist.add(groupId);
+
+    await this.addGroup(group, member);
   }
 
   /**
    * Stops managing a group and its servers.
    */
   private async removeGroup(groupId: number) {
-    this.logger.info(`[CLIENT] Removing group ${groupId}.`);
-
     const group = this.groups[groupId];
 
     if (typeof group === 'undefined') {
@@ -453,8 +484,28 @@ export class Client extends TypedEmitter<Events> {
       return;
     }
 
+    this.logger.info(`[CLIENT] Removing group ${groupId}.`);
+
     await group.dispose();
     delete this.groups[groupId];
+  }
+
+  /**
+   * Dynamically adds a group ID to the Client's denylist.
+   *
+   * @example
+   * try {
+   *   await client.denyGroup(12345);
+   * } catch (error) {
+   *   // Your own error handling.
+   *   console.error(error);
+   * }
+   */
+  public async denyGroup(groupId: number) {
+    this.groupDenylist.add(groupId);
+    this.groupAllowlist.delete(groupId);
+
+    await this.removeGroup(groupId);
   }
 
   /**
