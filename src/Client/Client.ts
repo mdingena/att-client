@@ -50,13 +50,13 @@ export class Client extends TypedEmitter<Events> {
       configuredConsole.warn(
         `${configuredLogPrefix}${
           configuredLogPrefix.length === 0 ? '' : ' '
-        }Using Warning log verbosity. You will only see Errors and Warnings. If you want to see more verbose logs, create your client with a higher 'logVerbosity'.`
+        }[CLIENT] Using Warning log verbosity. You will only see Errors and Warnings. If you want to see more verbose logs, create your client with a higher 'logVerbosity'.`
       );
     } else if (config.logVerbosity >= Verbosity.Debug) {
       configuredConsole.warn(
         `${configuredLogPrefix}${
           configuredLogPrefix.length === 0 ? '' : ' '
-        }You are using Debug log verbosity. This is not recommended for production environments as sensitive information like configured credentials will appear in your logs. Please consider using Info log verbosity or lower for production.`
+        }[CLIENT] You are using Debug log verbosity. This is not recommended for production environments as sensitive information like configured credentials will appear in your logs. Please consider using Info log verbosity or lower for production.`
       );
     }
 
@@ -78,16 +78,16 @@ export class Client extends TypedEmitter<Events> {
         typeof config.clientSecret === 'undefined' ||
         typeof config.scope === 'undefined'
       ) {
-        this.logger.error("Cannot create bot client without 'clientId', 'clientSecret', and 'scope'.");
+        this.logger.error(`[CLIENT] Cannot create bot client without 'clientId', 'clientSecret', and 'scope'.`);
         throw new Error('Invalid client configuration.');
       }
     } else if ('username' in config) {
       if (typeof config.username === 'undefined' || typeof config.password === 'undefined') {
-        this.logger.error("Cannot create user client without 'username' and 'password'.");
+        this.logger.error(`[CLIENT] Cannot create user client without 'username' and 'password'.`);
         throw new Error('Invalid client configuration.');
       }
     } else {
-      this.logger.error('Cannot create client without either bot credentials or user credentials.');
+      this.logger.error(`[CLIENT] Cannot create client without either bot credentials or user credentials.`);
       throw new Error('Invalid client configuration.');
     }
 
@@ -98,7 +98,7 @@ export class Client extends TypedEmitter<Events> {
       typeof config.includedGroups !== 'undefined' &&
       config.includedGroups.length > 0
     ) {
-      this.logger.warn('Client configuration contains both included and excluded groups. Ignoring excluded groups.');
+      this.logger.warn(`[CLIENT] Configuration contains both included and excluded groups. Ignoring excluded groups.`);
     }
 
     if (
@@ -106,7 +106,7 @@ export class Client extends TypedEmitter<Events> {
       config.maxWorkerConcurrency > MAX_WORKER_CONCURRENCY_WARNING
     ) {
       this.logger.warn(
-        'Maximum concurrency is set above recommended level. Client may experience issues with WebSocket migrations as a result of too many concurrent requests.'
+        `[CLIENT] Maximum concurrency is set above recommended level. Client may experience issues with WebSocket migrations as a result of too many concurrent requests.`
       );
     }
 
