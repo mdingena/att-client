@@ -71,8 +71,6 @@ export class Client extends TypedEmitter<Events> {
       verbosity: configuredLogVerbosity
     });
 
-    this.logger.info('Configuring client.');
-
     /* Validate required configuration. */
     if ('clientId' in config) {
       if (
@@ -181,7 +179,7 @@ export class Client extends TypedEmitter<Events> {
     }
 
     this.readyState = ReadyState.Starting;
-    this.logger.info(`[CLIENT] Initialising.`);
+    this.logger.info(`[CLIENT] Initialising...`);
 
     /* Configure access token and decoded token. */
     const decodedToken = await this.refreshTokens();
@@ -421,7 +419,6 @@ export class Client extends TypedEmitter<Events> {
    */
   private async addGroup(group: GroupInfo, member: GroupMemberInfo) {
     if (Object.keys(this.groups).map(Number).includes(group.id)) {
-      this.logger.error(`[CLIENT] Can't manage group ${group.id} (${group.name}) more than once.`);
       return;
     }
 
@@ -480,7 +477,6 @@ export class Client extends TypedEmitter<Events> {
     const group = this.groups[groupId];
 
     if (typeof group === 'undefined') {
-      this.logger.error(`[CLIENT] Can't remove an unmanaged group with ID ${groupId}.`);
       return;
     }
 
