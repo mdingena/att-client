@@ -432,6 +432,7 @@ export class Group extends TypedEmitter<Events> {
    * Disposes of this group. Tears down all managed servers and subscriptions.
    */
   async dispose() {
+    clearInterval(this.keepAlive);
     this.removeServers();
 
     await Promise.all([
@@ -439,6 +440,7 @@ export class Group extends TypedEmitter<Events> {
       this.client.subscriptions.unsubscribe('group-server-create', this.id.toString()),
       this.client.subscriptions.unsubscribe('group-server-delete', this.id.toString()),
       this.client.subscriptions.unsubscribe('group-server-status', this.id.toString()),
+      this.client.subscriptions.unsubscribe('group-server-heartbeat', this.id.toString()),
       this.client.subscriptions.unsubscribe('group-member-update', this.id.toString())
     ]);
   }
