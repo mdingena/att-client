@@ -117,7 +117,14 @@ export class Group extends TypedEmitter<Events> {
             `[GROUP-${this.id}] Status updated for server ${status.id} (${status.name}).`,
             JSON.stringify(status)
           );
+
           this.manageServerConnection(status);
+
+          const server = this.servers[status.id];
+
+          if (typeof server !== 'undefined') {
+            server.update(status);
+          }
         } catch (error) {
           this.client.logger.error(
             `[GROUP-${this.id}] Error while handling server update: ${(error as Error).message}`
@@ -334,8 +341,6 @@ export class Group extends TypedEmitter<Events> {
       clearInterval(this.keepAlive);
       server.disconnect();
     }
-
-    server.update(status);
   }
 
   /**
