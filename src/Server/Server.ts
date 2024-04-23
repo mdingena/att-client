@@ -24,6 +24,8 @@ export class Server extends TypedEmitter<Events> {
   fleet: ServerFleet;
 
   private connection?: ServerConnection;
+  private keepAlive: NodeJS.Timer | undefined;
+  private missedHeartbeats: number;
 
   constructor(group: Group, server: ServerInfo) {
     super();
@@ -32,6 +34,8 @@ export class Server extends TypedEmitter<Events> {
     this.fleet = server.fleet;
     this.group = group;
     this.id = server.id;
+    this.keepAlive = undefined;
+    this.missedHeartbeats = 0;
     this.name = server.name ?? group.name ?? '';
     this.playability = server.playability;
     this.players = server.online_players;
@@ -148,6 +152,8 @@ export class Server extends TypedEmitter<Events> {
    * Closes this server's console connection.
    */
   disconnect() {
+    clearInterval(this.keepAlive);
+
     if (typeof this.connection === 'undefined') return;
 
     this.group.client.logger.info(`[SERVER-${this.id}] Closing console connection.`);
@@ -189,6 +195,30 @@ export class Server extends TypedEmitter<Events> {
     this.fleet = status.fleet;
 
     this.emit('update', this);
+  }
+
+  /**
+   * Tracks server heartbeats.
+   */
+  handleHeartbeat(status: ServerInfo) {
+    clearInterval(this.keepAlive);
+    this.missedHeartbeats = 0;
+
+    if (status.is_online) {
+      this.keepAlive = setInterval(() => {
+        this.group.client.logger.info(
+          `[SERVER-${this.id}] No heartbeat received in the last ${
+            this.group.client.config.serverHeartbeatInterval * ++this.missedHeartbeats
+          } ms.`
+        );
+
+        if (this.missedHeartbeats >= this.group.client.config.maxMissedServerHeartbeats) {
+          this.group.client.logger.info(`[SERVER-${this.id}] Maximum missed heartbeats reached. Closing connection.`);
+
+          this.disconnect();
+        }
+      }, this.group.client.config.serverHeartbeatInterval);
+    }
   }
 
   /**

@@ -25,8 +25,6 @@ export class Group extends TypedEmitter<Events> {
   roles: Role[];
   servers: Servers;
 
-  private keepAlive: NodeJS.Timer | undefined;
-  private missedHeartbeats: number;
   private userId: number;
 
   constructor(client: Client, group: GroupInfo, member: GroupMemberInfo) {
@@ -35,8 +33,6 @@ export class Group extends TypedEmitter<Events> {
     this.client = client;
     this.description = group.description ?? '';
     this.id = group.id;
-    this.keepAlive = undefined;
-    this.missedHeartbeats = 0;
     this.name = group.name ?? '';
     this.permissions = this.getPermissions(group, member);
     this.roles = [];
@@ -278,36 +274,15 @@ export class Group extends TypedEmitter<Events> {
    * Tracks server heartbeats.
    */
   private async handleHeartbeat(status: ServerInfo) {
-    if (status.is_online) {
-      this.missedHeartbeats = 0;
-      clearInterval(this.keepAlive);
+    const serverId = status.id;
+    const server = await this.ensureServer(serverId);
 
-      const serverId = status.id;
-      const server = await this.ensureServer(serverId);
-
-      if (typeof server === 'undefined') {
-        this.client.logger.error(`[GROUP-${this.id}] Server ${serverId} not found in group.`);
-        return;
-      }
-
-      this.keepAlive = setInterval(() => {
-        this.client.logger.info(
-          `[GROUP-${this.id}] No heartbeat received for server ${serverId} (${server.name}) in the last ${
-            this.client.config.serverHeartbeatInterval * ++this.missedHeartbeats
-          } ms.`
-        );
-
-        if (this.missedHeartbeats >= this.client.config.maxMissedServerHeartbeats) {
-          this.client.logger.info(
-            `[GROUP-${this.id}] Maximum missed heartbeats reached for server ${serverId} (${server.name}). Closing connection.`
-          );
-
-          server.disconnect();
-          clearInterval(this.keepAlive);
-        }
-      }, this.client.config.serverHeartbeatInterval);
+    if (typeof server === 'undefined') {
+      this.client.logger.error(`[GROUP-${this.id}] Server ${serverId} not found in group.`);
+      return;
     }
 
+    server.handleHeartbeat(status);
     this.manageServerConnection(status);
   }
 
@@ -338,7 +313,6 @@ export class Group extends TypedEmitter<Events> {
         );
       }
     } else if (server.status !== 'disconnected' && (!mayConnect || !isServerOnline)) {
-      clearInterval(this.keepAlive);
       server.disconnect();
     }
   }
@@ -437,7 +411,6 @@ export class Group extends TypedEmitter<Events> {
    * Disposes of this group. Tears down all managed servers and subscriptions.
    */
   async dispose() {
-    clearInterval(this.keepAlive);
     this.removeServers();
 
     await Promise.all([
