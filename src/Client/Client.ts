@@ -343,7 +343,7 @@ export class Client extends TypedEmitter<Events> {
       headers.append('x-api-key', this.config.xApiKey);
     }
 
-    this.logger.debug('[CLIENT] Configured access token request headers.', headers);
+    this.logger.debug('[CLIENT] Configured access token request headers.');
 
     const endpoint =
       'clientId' in this.config ? this.config.tokenUrl : `${this.config.restBaseUrl}${Endpoint.Sessions}`;
