@@ -176,7 +176,7 @@ type SocialTabletPlayerReportedSubscriptionEventMessage = CommonMessage<'Subscri
 };
 
 type SocialTabletPlayerBannedEventMessage = CommonMessage<'Subscription'> & {
-  eventType: 'InventoryChanged';
+  eventType: 'SocialTabletPlayerBanned';
   data: {
     BannedBy: {
       id: number;
