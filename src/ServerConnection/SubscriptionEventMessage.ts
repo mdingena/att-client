@@ -139,7 +139,7 @@ type PlayerStateChangedSubscriptionEventMessage = CommonMessage<'Subscription'> 
       id: number;
       username: string;
     };
-    state: 'Playing' | 'Combat' | 'Dead';
+    state: 'Playing' | 'Combat' | 'Dead' | 'Equipment' | 'Customization';
     isEnter: boolean;
   };
 };
